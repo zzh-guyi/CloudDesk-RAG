@@ -1,0 +1,32 @@
+name: enterprise-rag
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      # Core
+      - fastapi>=0.115.0
+      - uvicorn[standard]>=0.30.0
+      # LangChain
+      # Vector DB
+      - pymilvus>=2.4.0
+      # Database
+      - sqlalchemy>=2.0.0
+      - pymysql>=1.1.0
+      - redis>=5.0.0
+      # ML / Embedding
+      - sentence-transformers>=3.0.0
+      - numpy>=1.26.0
+      # Utils
+      - pydantic>=2.0.0
+      - pydantic-settings>=2.0.0
+      - python-dotenv>=1.0.0
+      - httpx>=0.27.0
+      - loguru>=0.7.0
+      # Testing
+      - pytest>=8.0.0
+
+# Note: This environment requires network access to install pip packages.
+# and install missing packages manually when network is available.

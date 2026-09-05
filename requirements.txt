@@ -1,0 +1,18 @@
+# Core production dependencies (lightweight — no PyTorch, no CUDA)
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pymilvus>=2.4.0
+sqlalchemy>=2.0.0
+pymysql>=1.1.0
+redis>=5.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+httpx>=0.27.0
+numpy>=1.26.0
+
+# Local CrossEncoder Reranker (requires PyTorch CPU)
+sentence-transformers>=3.0.0
+
+# Optional: testing
+# pytest>=8.0.0

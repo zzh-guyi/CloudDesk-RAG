@@ -1,0 +1,115 @@
+{"query": "忘记密码应该怎么办", "relevant_doc_ids": ["doc_0004", "doc_0034"], "category": "faq", "difficulty": "easy"}
+{"query": "密码输入错误被锁定怎么办", "relevant_doc_ids": ["doc_0005"], "category": "faq", "difficulty": "easy"}
+{"query": "上传文件提示文件过大怎么处理", "relevant_doc_ids": ["doc_0008", "doc_0014", "doc_0024"], "category": "faq", "difficulty": "medium"}
+{"query": "E1001 错误怎么排查", "relevant_doc_ids": ["doc_0020", "doc_0021"], "category": "troubleshooting", "difficulty": "medium"}
+{"query": "免费版最多能创建几个项目", "relevant_doc_ids": ["doc_0011", "doc_0015"], "category": "pricing", "difficulty": "easy"}
+{"query": "怎么邀请新成员加入项目", "relevant_doc_ids": ["doc_0030", "doc_0006"], "category": "user_manual", "difficulty": "easy"}
+{"query": "API 请求被限流返回 429 怎么办", "relevant_doc_ids": ["doc_0013", "doc_0002"], "category": "product_rules", "difficulty": "medium"}
+{"query": "免费版和团队版存储有什么区别", "relevant_doc_ids": ["doc_0011", "doc_0012", "doc_0016"], "category": "pricing", "difficulty": "medium"}
+{"query": "怎么注册一个 CloudDesk 账号", "relevant_doc_ids": ["doc_0035"], "category": "user_manual", "difficulty": "easy"}
+{"query": "E2003 资源未找到是什么原因", "relevant_doc_ids": ["doc_0022", "doc_0002"], "category": "troubleshooting", "difficulty": "easy"}
+{"query": "只能查看不能编辑怎么办", "relevant_doc_ids": ["doc_0007", "doc_0023"], "category": "faq", "difficulty": "medium"}
+{"query": "修改个人资料怎么操作", "relevant_doc_ids": ["doc_0028"], "category": "user_manual", "difficulty": "easy"}
+{"query": "登不进去咋整", "relevant_doc_ids": ["doc_0005", "doc_0031"], "category": "faq", "difficulty": "hard"}
+{"query": "密码老是不对", "relevant_doc_ids": ["doc_0004", "doc_0005"], "category": "faq", "difficulty": "hard"}
+{"query": "账号被封了怎么办", "relevant_doc_ids": ["doc_0005", "doc_0023"], "category": "faq", "difficulty": "hard"}
+{"query": "传不上去文件", "relevant_doc_ids": ["doc_0008", "doc_0024"], "category": "faq", "difficulty": "hard"}
+{"query": "为啥收不到验证码", "relevant_doc_ids": ["doc_0009"], "category": "faq", "difficulty": "medium"}
+{"query": "能不能看看但不能改", "relevant_doc_ids": ["doc_0007", "doc_0023"], "category": "faq", "difficulty": "hard"}
+{"query": "注册要填啥信息", "relevant_doc_ids": ["doc_0035"], "category": "user_manual", "difficulty": "medium"}
+{"query": "登录页点进去没反应", "relevant_doc_ids": ["doc_0005", "doc_0031"], "category": "faq", "difficulty": "hard"}
+{"query": "怎么把项目删了重新搞", "relevant_doc_ids": ["doc_0015", "doc_0027"], "category": "user_manual", "difficulty": "medium"}
+{"query": "免费版够不够用", "relevant_doc_ids": ["doc_0011", "doc_0015", "doc_0016"], "category": "pricing", "difficulty": "medium"}
+{"query": "上传失败还提示文件太大", "relevant_doc_ids": ["doc_0008", "doc_0014", "doc_0024"], "category": "faq", "difficulty": "medium"}
+{"query": "怎么看自己还剩多少空间", "relevant_doc_ids": ["doc_0016", "doc_0011"], "category": "pricing", "difficulty": "easy"}
+{"query": "token过期了怎么刷新", "relevant_doc_ids": ["doc_0001"], "category": "api_docs", "difficulty": "medium"}
+{"query": "项目满了怎么弄", "relevant_doc_ids": ["doc_0015", "doc_0010"], "category": "pricing", "difficulty": "medium"}
+{"query": "我的账号被禁用了", "relevant_doc_ids": ["doc_0002", "doc_0005"], "category": "troubleshooting", "difficulty": "hard"}
+{"query": "为什么有时候请求会超时", "relevant_doc_ids": ["doc_0019"], "category": "troubleshooting", "difficulty": "hard"}
+{"query": "API Key 格式不对", "relevant_doc_ids": ["doc_0001", "doc_0002"], "category": "api_docs", "difficulty": "hard"}
+{"query": "能不能把成员踢出去", "relevant_doc_ids": ["doc_0030", "doc_0032"], "category": "user_manual", "difficulty": "hard"}
+{"query": "项目归档了还能用吗", "relevant_doc_ids": ["doc_0015"], "category": "product_rules", "difficulty": "hard"}
+{"query": "企业版和团队版差多少", "relevant_doc_ids": ["doc_0010", "doc_0012"], "category": "pricing", "difficulty": "medium"}
+{"query": "登录方式有哪些", "relevant_doc_ids": ["doc_0031"], "category": "user_manual", "difficulty": "easy"}
+{"query": "怎么设置审批流程", "relevant_doc_ids": ["doc_0025"], "category": "user_manual", "difficulty": "hard"}
+{"query": "怎么调用项目接口", "relevant_doc_ids": ["doc_0003"], "category": "api_docs", "difficulty": "medium"}
+{"query": "E2001 是什么意思", "relevant_doc_ids": ["doc_0002"], "category": "api_docs", "difficulty": "easy"}
+{"query": "怎么通过接口创建项目", "relevant_doc_ids": ["doc_0003"], "category": "api_docs", "difficulty": "medium"}
+{"query": "Token 有效期是多久", "relevant_doc_ids": ["doc_0001"], "category": "api_docs", "difficulty": "easy"}
+{"query": "怎么废除 Token", "relevant_doc_ids": ["doc_0001"], "category": "api_docs", "difficulty": "easy"}
+{"query": "登录问题", "relevant_doc_ids": ["doc_0005", "doc_0031"], "category": "faq", "difficulty": "medium"}
+{"query": "上传", "relevant_doc_ids": ["doc_0008", "doc_0014", "doc_0024", "doc_0029"], "category": "faq", "difficulty": "easy"}
+{"query": "怎么查看项目成员列表", "relevant_doc_ids": ["doc_0030", "doc_0032"], "category": "user_manual", "difficulty": "medium"}
+{"query": "免费版升级流程", "relevant_doc_ids": ["doc_0011", "doc_0012", "doc_0010"], "category": "pricing", "difficulty": "medium"}
+{"query": "怎么修改自己的头像和昵称", "relevant_doc_ids": ["doc_0028"], "category": "user_manual", "difficulty": "easy"}
+{"query": "免费版的所有限制有哪些", "relevant_doc_ids": ["doc_0011", "doc_0014", "doc_0015", "doc_0016"], "category": "pricing", "difficulty": "hard"}
+{"query": "企业版能私有化部署吗", "relevant_doc_ids": ["doc_0010"], "category": "pricing", "difficulty": "medium"}
+{"query": "怎么查看任务管理功能", "relevant_doc_ids": ["doc_0036"], "category": "user_manual", "difficulty": "easy"}
+{"query": "项目模板有哪些", "relevant_doc_ids": ["doc_0027"], "category": "user_manual", "difficulty": "easy"}
+{"query": "通知设置怎么开", "relevant_doc_ids": ["doc_0033"], "category": "user_manual", "difficulty": "easy"}
+{"query": "错误码 E4001 怎么解决", "relevant_doc_ids": ["doc_0002", "doc_0024"], "category": "troubleshooting", "difficulty": "medium"}
+{"query": "我登不上去了", "relevant_doc_ids": ["doc_0005", "doc_0031"], "category": "faq", "difficulty": "hard"}
+{"query": "验证码一直没收到", "relevant_doc_ids": ["doc_0009"], "category": "faq", "difficulty": "medium"}
+{"query": "我的文件传不上去", "relevant_doc_ids": ["doc_0008", "doc_0024"], "category": "faq", "difficulty": "medium"}
+{"query": "为什么总是超时", "relevant_doc_ids": ["doc_0019"], "category": "troubleshooting", "difficulty": "hard"}
+{"query": "账号显示被禁用", "relevant_doc_ids": ["doc_0002", "doc_0023"], "category": "troubleshooting", "difficulty": "hard"}
+{"query": "项目创建不了", "relevant_doc_ids": ["doc_0015", "doc_0027"], "category": "user_manual", "difficulty": "hard"}
+{"query": "能不能只看不改", "relevant_doc_ids": ["doc_0007", "doc_0023"], "category": "faq", "difficulty": "hard"}
+{"query": "密码复杂度要求是什么", "relevant_doc_ids": ["doc_0004", "doc_0034"], "category": "faq", "difficulty": "medium"}
+{"query": "邀请链接发不出去", "relevant_doc_ids": ["doc_0030"], "category": "user_manual", "difficulty": "medium"}
+{"query": "数据导出怎么用", "relevant_doc_ids": ["doc_0010"], "category": "pricing", "difficulty": "hard"}
+{"query": "Bearer token 怎么传", "relevant_doc_ids": ["doc_0001"], "category": "api_docs", "difficulty": "medium"}
+{"query": "POST 请求格式不对", "relevant_doc_ids": ["doc_0003"], "category": "api_docs", "difficulty": "hard"}
+{"query": "E1002 token过期怎么办", "relevant_doc_ids": ["doc_0002", "doc_0001"], "category": "api_docs", "difficulty": "medium"}
+{"query": "怎么批量操作接口", "relevant_doc_ids": ["doc_0003"], "category": "api_docs", "difficulty": "hard"}
+{"query": "GET 请求参数怎么传", "relevant_doc_ids": ["doc_0003"], "category": "api_docs", "difficulty": "easy"}
+{"query": "API 限流了怎么办", "relevant_doc_ids": ["doc_0013", "doc_0002"], "category": "api_docs", "difficulty": "medium"}
+{"query": "怎么获取 refresh token", "relevant_doc_ids": ["doc_0001"], "category": "api_docs", "difficulty": "easy"}
+{"query": "删除项目接口报错", "relevant_doc_ids": ["doc_0003", "doc_0002"], "category": "api_docs", "difficulty": "medium"}
+{"query": "E3001 连接超时", "relevant_doc_ids": ["doc_0019", "doc_0002"], "category": "troubleshooting", "difficulty": "medium"}
+{"query": "E4002 文件格式不支持", "relevant_doc_ids": ["doc_0024", "doc_0014"], "category": "troubleshooting", "difficulty": "easy"}
+{"query": "E4004 存储已满", "relevant_doc_ids": ["doc_0024", "doc_0016"], "category": "troubleshooting", "difficulty": "easy"}
+{"query": "SSO 登录跳不过去", "relevant_doc_ids": ["doc_0031", "doc_0005"], "category": "troubleshooting", "difficulty": "hard"}
+{"query": "浏览器一直转圈", "relevant_doc_ids": ["doc_0005"], "category": "troubleshooting", "difficulty": "hard"}
+{"query": "邮件被当成垃圾邮件了", "relevant_doc_ids": ["doc_0009", "doc_0004"], "category": "troubleshooting", "difficulty": "medium"}
+{"query": "我要把项目删了重建", "relevant_doc_ids": ["doc_0015", "doc_0027"], "category": "user_manual", "difficulty": "medium"}
+{"query": "成员权限不对怎么办", "relevant_doc_ids": ["doc_0030", "doc_0007"], "category": "user_manual", "difficulty": "hard"}
+{"query": "免费版能升级到企业版吗", "relevant_doc_ids": ["doc_0011", "doc_0010"], "category": "pricing", "difficulty": "medium"}
+{"query": "企业版能退订吗", "relevant_doc_ids": ["doc_0010"], "category": "pricing", "difficulty": "hard"}
+{"query": "怎么同时用邮箱和手机号登录", "relevant_doc_ids": ["doc_0031", "doc_0004"], "category": "user_manual", "difficulty": "hard"}
+{"query": "团队成员权限太低了", "relevant_doc_ids": ["doc_0030", "doc_0007", "doc_0023"], "category": "user_manual", "difficulty": "hard"}
+{"query": "咋注册账号", "relevant_doc_ids": ["doc_0035"], "category": "user_manual", "difficulty": "hard"}
+{"query": "咋改密码", "relevant_doc_ids": ["doc_0004", "doc_0034"], "category": "faq", "difficulty": "hard"}
+{"query": "咋邀请人", "relevant_doc_ids": ["doc_0030"], "category": "user_manual", "difficulty": "hard"}
+{"query": "账号登不上了咋办", "relevant_doc_ids": ["doc_0005", "doc_0031"], "category": "faq", "difficulty": "hard"}
+{"query": "项目创建不了咋整", "relevant_doc_ids": ["doc_0015", "doc_0027"], "category": "user_manual", "difficulty": "hard"}
+{"query": "上传文件一直失败", "relevant_doc_ids": ["doc_0008", "doc_0024"], "category": "faq", "difficulty": "medium"}
+{"query": "How to reset password", "relevant_doc_ids": ["doc_0004", "doc_0034"], "category": "faq", "difficulty": "hard"}
+{"query": "API authentication failed", "relevant_doc_ids": ["doc_0001", "doc_0002"], "category": "api_docs", "difficulty": "hard"}
+{"query": "upload failed 413", "relevant_doc_ids": ["doc_0024", "doc_0014"], "category": "troubleshooting", "difficulty": "hard"}
+{"query": "How to invite member", "relevant_doc_ids": ["doc_0030"], "category": "user_manual", "difficulty": "medium"}
+{"query": "CloudDesk 股票价格", "relevant_doc_ids": [], "category": "faq", "difficulty": "easy"}
+{"query": "怎么在 CloudDesk 里炒股票", "relevant_doc_ids": [], "category": "faq", "difficulty": "easy"}
+{"query": "CloudDesk 办公室地址在哪", "relevant_doc_ids": [], "category": "faq", "difficulty": "easy"}
+{"query": "怎么删除 CloudDesk 公司", "relevant_doc_ids": [], "category": "faq", "difficulty": "easy"}
+{"query": "CloudDesk 和钉钉有什么区别", "relevant_doc_ids": [], "category": "faq", "difficulty": "medium"}
+{"query": "怎么在 CloudDesk 里发工资", "relevant_doc_ids": [], "category": "faq", "difficulty": "easy"}
+{"query": "怎么给别人发邀请链接", "relevant_doc_ids": ["doc_0030"], "category": "user_manual", "difficulty": "easy"}
+{"query": "怎么把项目模板复制过来", "relevant_doc_ids": ["doc_0027"], "category": "user_manual", "difficulty": "medium"}
+{"query": "任务管理在哪", "relevant_doc_ids": ["doc_0036"], "category": "user_manual", "difficulty": "easy"}
+{"query": "怎么打开消息通知", "relevant_doc_ids": ["doc_0033"], "category": "user_manual", "difficulty": "easy"}
+{"query": "怎么创建数据分析项目", "relevant_doc_ids": ["doc_0027"], "category": "user_manual", "difficulty": "medium"}
+{"query": "怎么给项目设置模板", "relevant_doc_ids": ["doc_0027"], "category": "user_manual", "difficulty": "medium"}
+{"query": "团队版和免费版差在哪", "relevant_doc_ids": ["doc_0011", "doc_0012"], "category": "pricing", "difficulty": "medium"}
+{"query": "企业版一年多少钱", "relevant_doc_ids": ["doc_0010"], "category": "pricing", "difficulty": "easy"}
+{"query": "可以按人头付费吗", "relevant_doc_ids": ["doc_0010", "doc_0012"], "category": "pricing", "difficulty": "medium"}
+{"query": "年付有优惠吗", "relevant_doc_ids": ["doc_0012"], "category": "pricing", "difficulty": "easy"}
+{"query": "免费额度用完了怎么办", "relevant_doc_ids": ["doc_0011", "doc_0016"], "category": "pricing", "difficulty": "medium"}
+{"query": "怎么申请demo", "relevant_doc_ids": ["doc_0010"], "category": "pricing", "difficulty": "easy"}
+{"query": "单文件最大能传多大", "relevant_doc_ids": ["doc_0014", "doc_0016"], "category": "product_rules", "difficulty": "easy"}
+{"query": "一次能传几个文件", "relevant_doc_ids": ["doc_0014"], "category": "product_rules", "difficulty": "easy"}
+{"query": "项目可以归档吗", "relevant_doc_ids": ["doc_0015"], "category": "product_rules", "difficulty": "easy"}
+{"query": "版本策略是什么", "relevant_doc_ids": ["doc_0018"], "category": "product_rules", "difficulty": "easy"}
+{"query": "登录", "relevant_doc_ids": ["doc_0031", "doc_0005"], "category": "user_manual", "difficulty": "medium"}
+{"query": "注册", "relevant_doc_ids": ["doc_0035"], "category": "user_manual", "difficulty": "easy"}
+{"query": "密码", "relevant_doc_ids": ["doc_0004", "doc_0034", "doc_0005"], "category": "faq", "difficulty": "medium"}
