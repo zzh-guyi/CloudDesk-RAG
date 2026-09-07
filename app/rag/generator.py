@@ -1,7 +1,7 @@
 """
 LLM 生成模块 - 生成回答 + Citation
 """
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Generator
 import logging
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,19 @@ class Generator:
                 "answer": "抱歉，生成回答时出现错误。",
                 "sources": self._extract_sources(results),
             }
+
+    def generate_stream(self, query: str, rewritten_query: str, context: str, results: List[RetrievalResult]):
+        try:
+            messages = [
+                {'role': 'system', 'content': 'You are CloudDesk enterprise SaaS customer service assistant.'},
+                {'role': 'user', 'content': PROMPT_TEMPLATE.format(query=rewritten_query, context=context)}
+            ]
+            for token in self.llm.generate_stream(messages, max_tokens=1024):
+                if token:
+                    yield ('token', token)
+        except Exception as e:
+            logger.error(f'Generator stream failed: {e}')
+            yield ('error', str(e))
 
     def _extract_sources(self, results: List[RetrievalResult]) -> List[Dict[str, Any]]:
         """提取引用来源"""
