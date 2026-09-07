@@ -1,7 +1,7 @@
 """
 RAG Pipeline - 完整 RAG 流程编排
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Generator, Generator
 from time import time
 import logging
 
@@ -151,6 +151,50 @@ class RAGPipeline:
         metrics.save_to_redis()
 
         return result
+
+
+    def run_stream(self, query: str, top_k: Optional[int] = None):
+        import time as _time
+        start_time = _time.time()
+        top_k = top_k or settings.rag_top_k
+        try:
+            rewrite_result = self.rewriter.rewrite(query)
+            rewritten_query = rewrite_result['rewritten']
+            logger.info(f'Query rewrite: {query} -> {rewritten_query}')
+
+            category = self.router.route(rewritten_query)
+            metrics.record_category(category)
+            logger.info(f'Query routed to category: {category}')
+
+            retrieval_results = self.retriever.retrieve(query=rewritten_query, top_k=max(top_k * 4, 20), category=category)
+
+            reranked = self.reranker.rerank(query=rewritten_query, results=retrieval_results.results, top_k=settings.rag_rerank_limit)
+
+            context = self.compressor.compress(reranked, rewritten_query)
+
+            sources_data = []
+            for r in reranked[:top_k]:
+                source = {'document_id': r.document_id, 'title': r.title, 'category': r.category}
+                if r.rerank_score is not None:
+                    source['score'] = round(r.rerank_score, 4)
+                elif r.rrf_score is not None:
+                    source['score'] = round(r.rrf_score, 4)
+                sources_data.append(source)
+            yield {'type': 'sources', 'data': sources_data}
+
+            for event_type, data in self.generator.generate_stream(query=query, rewritten_query=rewritten_query, context=context, results=reranked[:top_k]):
+                if event_type == 'error':
+                    yield {'type': 'error', 'data': data}
+                    return
+                yield {'type': 'token', 'data': data}
+
+            latency_ms = (_time.time() - start_time) * 1000
+            yield {'type': 'done', 'data': {'status': 'complete', 'latency_ms': round(latency_ms, 1), 'vector_count': retrieval_results.vector_count, 'keyword_count': retrieval_results.keyword_count, 'rrf_top_k': len(reranked), 'rewritten_query': rewritten_query, 'query_category': category}}
+            metrics.record_latency(latency_ms)
+            metrics.save_to_redis()
+        except Exception as e:
+            logger.error(f'Pipeline stream failed: {e}')
+            yield {'type': 'error', 'data': f'Pipeline error: {str(e)}'}
 
 
 # 全局单例
