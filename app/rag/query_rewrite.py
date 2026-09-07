@@ -12,6 +12,7 @@ from config.settings import settings
 
 REWRITE_PROMPT = """请对用户的问题进行分析和重写，使其更适合作为知识库检索的查询。
 
+{history_section}
 原始问题：{query}
 
 要求：
@@ -21,6 +22,11 @@ REWRITE_PROMPT = """请对用户的问题进行分析和重写，使其更适合
 4. 输出格式：只输出重写后的问题，不要解释
 
 重写后的问题："""
+
+HISTORY_SECTION = """历史对话：
+{history}
+
+当前问题："""
 
 CATEGORY_PROMPT = """请对以下问题进行分类，从以下类别中选择一个最合适的：
 
@@ -45,20 +51,32 @@ class QueryRewriter:
     def __init__(self):
         self.llm = get_llm_service()
 
-    def rewrite(self, query: str) -> Dict[str, Any]:
+    def rewrite(self, query: str, history: str = "") -> Dict[str, Any]:
         """
         重写查询
-        
+
         Args:
             query: 原始查询
-            
+            history: 对话历史（可为空）
+
         Returns:
             {"original": str, "rewritten": str}
         """
         try:
+            # 根据是否有历史构建 prompt
+            if history:
+                prompt = REWRITE_PROMPT.format(
+                    history_section=HISTORY_SECTION.format(history=history),
+                    query=query
+                )
+            else:
+                prompt = REWRITE_PROMPT.format(
+                    history_section="",
+                    query=query
+                )
             messages = [
                 {"role": "system", "content": "你是一个查询优化助手，擅长将用户问题转换为更适合检索的查询语句。"},
-                {"role": "user", "content": REWRITE_PROMPT.format(query=query)}
+                {"role": "user", "content": prompt}
             ]
             rewritten = self.llm.generate(messages, max_tokens=200)
             # 清理输出
@@ -81,10 +99,10 @@ class QueryRouter:
     def route(self, query: str) -> str:
         """
         对查询进行分类
-        
+
         Args:
             query: 查询文本
-            
+
         Returns:
             分类名称
         """
@@ -136,5 +154,3 @@ def get_query_router() -> QueryRouter:
     if _query_router is None:
         _query_router = QueryRouter()
     return _query_router
-
-
