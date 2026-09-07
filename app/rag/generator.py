@@ -12,6 +12,7 @@ from config.settings import settings
 
 PROMPT_TEMPLATE = """你是一个 CloudDesk 企业 SaaS 产品的智能客服助手。请根据以下知识库资料回答用户问题。
 
+{history_section}
 ## 用户问题
 {query}
 
@@ -35,6 +36,13 @@ PROMPT_TEMPLATE = """你是一个 CloudDesk 企业 SaaS 产品的智能客服助
 - [来源2] 标题
 """
 
+HISTORY_SECTION = """## 历史对话
+{history}
+
+---
+
+"""
+
 
 class Generator:
     """LLM 生成模块"""
@@ -47,21 +55,29 @@ class Generator:
         query: str,
         rewritten_query: str,
         context: str,
-        results: List[RetrievalResult]
+        results: List[RetrievalResult],
+        history: str = ""
     ) -> Dict[str, Any]:
         """
         生成回答
-        
+
         Args:
             query: 原始查询
             rewritten_query: 重写后的查询
             context: 压缩后的上下文
             results: 检索结果
-            
+            history: 对话历史（可为空）
+
         Returns:
             包含 answer 和 sources 的字典
         """
         try:
+            # 根据是否有历史构建 prompt
+            if history:
+                history_section = HISTORY_SECTION.format(history=history)
+            else:
+                history_section = ""
+
             messages = [
                 {
                     "role": "system",
@@ -70,6 +86,7 @@ class Generator:
                 {
                     "role": "user",
                     "content": PROMPT_TEMPLATE.format(
+                        history_section=history_section,
                         query=rewritten_query,
                         context=context
                     )
@@ -90,11 +107,20 @@ class Generator:
                 "sources": self._extract_sources(results),
             }
 
-    def generate_stream(self, query: str, rewritten_query: str, context: str, results: List[RetrievalResult]):
+    def generate_stream(self, query: str, rewritten_query: str, context: str, results: List[RetrievalResult], history: str = ""):
         try:
+            if history:
+                history_section = HISTORY_SECTION.format(history=history)
+            else:
+                history_section = ""
+
             messages = [
                 {'role': 'system', 'content': 'You are CloudDesk enterprise SaaS customer service assistant.'},
-                {'role': 'user', 'content': PROMPT_TEMPLATE.format(query=rewritten_query, context=context)}
+                {'role': 'user', 'content': PROMPT_TEMPLATE.format(
+                    history_section=history_section,
+                    query=rewritten_query,
+                    context=context
+                )}
             ]
             for token in self.llm.generate_stream(messages, max_tokens=1024):
                 if token:
@@ -118,5 +144,3 @@ class Generator:
                 source["relevance_score"] = round(r.rrf_score, 4)
             sources.append(source)
         return sources
-
-
