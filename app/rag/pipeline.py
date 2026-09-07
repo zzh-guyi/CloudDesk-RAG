@@ -27,6 +27,32 @@ class RAGPipeline:
         self.reranker = Reranker()
         self.compressor = ContextCompressor()
         self.generator = Generator()
+        self._redis_service = None
+        self._max_history_rounds = 5
+
+    def _get_redis_service(self):
+        """获取 Redis 服务单例（延迟初始化）"""
+        if self._redis_service is None:
+            from app.services.redis_service import get_redis_service
+            self._redis_service = get_redis_service()
+        return self._redis_service
+
+    def _load_history(self, session_id: Optional[str]) -> str:
+        """读取对话历史，限制最近 N 轮"""
+        if not session_id:
+            return ""
+        try:
+            redis = self._get_redis_service()
+            if not redis.is_available:
+                return ""
+            history = redis.get_context(session_id)
+            logger.info(
+                f"memory.loaded: session_id={session_id}, history_length={len(history)}"
+            )
+            return history
+        except Exception as e:
+            logger.warning(f"Failed to load memory: {e}")
+            return ""
 
     def run(
         self,
@@ -48,12 +74,15 @@ class RAGPipeline:
         start_time = time()
         top_k = top_k or settings.rag_top_k
 
+        # 读取对话历史
+        history_context = self._load_history(session_id)
+
         # 保存最终结果，确保退出 measure_latency() 后再持久化 Metrics
         result = None
 
         with metrics.measure_latency():
-            # Step 1: Query Rewrite
-            rewrite_result = self.rewriter.rewrite(query)
+            # Step 1: Query Rewrite（传入历史）
+            rewrite_result = self.rewriter.rewrite(query, history=history_context)
             rewritten_query = rewrite_result["rewritten"]
             logger.info(f"Query rewrite: {query} -> {rewritten_query}")
 
@@ -82,20 +111,18 @@ class RAGPipeline:
                 rewritten_query
             )
 
-            # Step 6: LLM Generation
+            # Step 6: LLM Generation（传入历史）
             generation_result = self.generator.generate(
                 query=query,
                 rewritten_query=rewritten_query,
                 context=context,
-                results=reranked[:top_k]
+                results=reranked[:top_k],
+                history=history_context
             )
 
             # Step 7: Redis Memory
             if session_id:
-                from app.services.redis_service import get_redis_service
-
-                redis = get_redis_service()
-
+                redis = self._get_redis_service()
                 if redis.is_available:
                     redis.add_message(
                         session_id,
@@ -107,6 +134,7 @@ class RAGPipeline:
                         "assistant",
                         generation_result["answer"]
                     )
+                    logger.info(f"memory.saved: session_id={session_id}")
 
             # Calculate pipeline latency
             latency_ms = (time() - start_time) * 1000
@@ -141,24 +169,21 @@ class RAGPipeline:
                 "session_id": session_id,
             }
 
-        # ============================================================
-        # 重要：
-        # measure_latency() 已经退出，此时 finally 中的
-        # metrics.record_latency() 已经执行完成。
-        # 因此这里保存到 Redis 时，total_requests 和
-        # avg_latency_ms 已经是最新值。
-        # ============================================================
         metrics.save_to_redis()
 
         return result
 
 
-    def run_stream(self, query: str, top_k: Optional[int] = None):
+    def run_stream(self, query: str, session_id: Optional[str] = None, top_k: Optional[int] = None):
         import time as _time
         start_time = _time.time()
         top_k = top_k or settings.rag_top_k
+
+        # 读取对话历史
+        history_context = self._load_history(session_id)
+
         try:
-            rewrite_result = self.rewriter.rewrite(query)
+            rewrite_result = self.rewriter.rewrite(query, history=history_context)
             rewritten_query = rewrite_result['rewritten']
             logger.info(f'Query rewrite: {query} -> {rewritten_query}')
 
@@ -182,7 +207,11 @@ class RAGPipeline:
                 sources_data.append(source)
             yield {'type': 'sources', 'data': sources_data}
 
-            for event_type, data in self.generator.generate_stream(query=query, rewritten_query=rewritten_query, context=context, results=reranked[:top_k]):
+            for event_type, data in self.generator.generate_stream(
+                query=query, rewritten_query=rewritten_query,
+                context=context, results=reranked[:top_k],
+                history=history_context
+            ):
                 if event_type == 'error':
                     yield {'type': 'error', 'data': data}
                     return
@@ -192,6 +221,14 @@ class RAGPipeline:
             yield {'type': 'done', 'data': {'status': 'complete', 'latency_ms': round(latency_ms, 1), 'vector_count': retrieval_results.vector_count, 'keyword_count': retrieval_results.keyword_count, 'rrf_top_k': len(reranked), 'rewritten_query': rewritten_query, 'query_category': category}}
             metrics.record_latency(latency_ms)
             metrics.save_to_redis()
+
+            # 保存历史（stream 模式）
+            if session_id:
+                redis = self._get_redis_service()
+                if redis.is_available:
+                    redis.add_message(session_id, "user", query)
+                    redis.add_message(session_id, "assistant", data)
+                    logger.info(f"memory.saved: session_id={session_id}")
         except Exception as e:
             logger.error(f'Pipeline stream failed: {e}')
             yield {'type': 'error', 'data': f'Pipeline error: {str(e)}'}
