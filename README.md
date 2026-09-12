@@ -1,606 +1,771 @@
-------
-
 # CloudDesk RAG 企业 SaaS 智能客服系统
 
-基于 FastAPI + Milvus + MySQL + LLM 构建的企业 SaaS 智能客服系统，实现 Query Rewrite、Hybrid Retrieval（向量 + 关键词）、RRF 融合排序、可插拔 Rerank 和 LLM 问答生成的完整 RAG 链路，并配有离线 Evaluation 框架用于检索策略对比实验。
+基于 **FastAPI + Milvus + MySQL + Redis + DeepSeek** 构建的企业 SaaS 智能客服系统，实现 **Query Rewrite、Hybrid Retrieval、RRF 融合、BGE CrossEncoder Rerank、Context Compression、LLM Generation** 的完整 RAG 链路，并配套 **Retrieval Evaluation + LLM-as-a-Judge Generation Evaluation** 离线评测体系。
 
-**核心标签**：Python · FastAPI · Milvus · MySQL · DeepSeek · RAG · Hybrid Retrieval · RRF · BGE Reranker · Docker
+系统面向企业 SaaS 产品知识库问答场景，通过向量检索与关键词检索结合，提高知识召回覆盖率；通过 RRF 与 CrossEncoder Reranker 优化候选文档排序；最终由 LLM 基于检索上下文生成可溯源回答。
+
+**核心标签**：Python · FastAPI · Milvus · MySQL · Redis · DeepSeek · RAG · Hybrid Retrieval · RRF · BGE Reranker · Docker
 
 ------
 
 ## 📖 目录
 
-1. [这个项目是什么？](#-这个项目是什么)
-2. [解决了什么问题？](#-解决了什么问题？)
-3. [完整RAG流程](#-完整RAG流程)
-4. [评估体系](#-评估体系)
-5. [系统架构](#-系统架构)
-6. [关键技术详解](#-关键技术详解)
-7. [快速上手](#-快速上手)
-8. [API接口文档](#-API接口文档)
-9. [项目文件结构](#-项目文件结构)
-10. [技术栈总览](#-技术栈总览)
+1. [项目简介](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-项目简介)
+2. [系统架构](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-系统架构)
+3. [离线评测体系](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-离线评测体系)
+4. [Retrieval Evaluation](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-retrieval-evaluation)
+5. [Generation Evaluation](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-generation-evaluation)
+6. [关键技术详解](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-关键技术详解)
+7. [快速上手](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-快速上手)
+8. [API 接口文档](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-api-接口文档)
+9. [项目文件结构](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-项目文件结构)
+10. [技术栈总览](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-技术栈总览)
+11. [Engineering Highlights](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-engineering-highlights)
 
 ------
 
-## 🤔 这个项目是什么？
+# 🤔 项目简介
 
 ### 用一句话解释
 
-> CloudDesk 是一个面向企业 SaaS 产品的智能客服问答系统。用户提出售后或使用问题后，系统从产品知识库中检索相关内容，由 LLM 生成有依据的回答，并返回引用来源。**同时支持多轮对话记忆（Redis Session）和 SSE 流式输出，提升交互体验。**
+> CloudDesk 是一个面向企业 SaaS 产品的智能客服问答系统。用户提出售后或使用问题后，系统从产品知识库中检索相关内容，由 LLM 基于检索上下文生成回答，并返回对应来源；同时支持多轮对话记忆与 SSE 流式输出。
 
-不同于纯 LLM 回答容易产生幻觉、纯关键词匹配无法理解语义，本项目采用 **RAG（检索增强生成）** 架构，通过 **Query Rewrite、Hybrid Retrieval（向量 + 关键词 + RRF 融合）、BGE CrossEncoder Rerank 和 LLM 生成**的完整二阶段检索排序链路，在检索和生成之间找到平衡——先用检索保证知识覆盖，再通过 Reranker 提升排序准确性，最后由 LLM 基于检索上下文生成可溯源回答。
+传统纯 LLM 问答容易产生知识幻觉，单一关键词检索又难以处理语义表达差异。因此本项目采用 **RAG（Retrieval-Augmented Generation）** 架构，通过：
+
+**Query Rewrite → Hybrid Retrieval → RRF → BGE Rerank → Context Compression → LLM Generation**
+
+构建完整的两阶段检索与生成链路，并通过离线 Evaluation 对 Retrieval 和 Generation 进行量化评估。
+
+### 核心能力
+
+- **Query Rewrite**：结合多轮对话历史，对用户 Query 进行语义改写
+- **Query Router**：根据问题类型进行分类，并支持 category 过滤
+- **Hybrid Retrieval**：BGE-M3 向量检索 + MySQL BM25 关键词检索
+- **RRF Fusion**：融合 Vector / Keyword 两路检索结果
+- **BGE Reranker**：使用 `BAAI/bge-reranker-v2-m3` 进行 CrossEncoder 精排
+- **Context Compression**：根据相关性排序并限制上下文长度
+- **LLM Generation**：基于检索上下文生成回答并返回来源
+- **Multi-turn Memory**：Redis 保存和读取多轮对话历史
+- **SSE Streaming**：支持流式答案与来源信息返回
+- **Retrieval Evaluation**：支持不同检索策略的离线对比
+- **Generation Evaluation**：支持基于 LLM-as-a-Judge 的生成质量评估
 
 ------
 
-## 🎯 解决了什么问题？
+# 🏗 系统架构
 
-传统客服问答系统主要存在以下问题：
-
-| 问题                     | 传统方案                       | 本项目方案                                                   | 验证指标                 |
-| :----------------------- | :----------------------------- | :----------------------------------------------------------- | :----------------------- |
-| 🎯 语义理解不足           | 纯关键词匹配，无法理解同义表达 | **Query Rewrite**：LLM 将口语化查询重写为文档风格            | Recall@K、MRR@K          |
-| 🔍 召回覆盖不足           | 单一向量检索容易遗漏精确术语   | **Hybrid Retrieval**：向量语义检索 + MySQL 关键词检索，RRF 融合 | Recall@K、Precision@K    |
-| 📊 排序不准确             | 检索结果直接按相似度排序       | **BGE CrossEncoder Rerank**：对 Hybrid+RRF 候选进行二阶段精排 | MRR@K、Precision@K       |
-| 🤖 LLM 容易幻觉           | 直接让 LLM 回答，无知识约束    | **RAG 生成**：LLM 基于检索到的知识生成回答，可溯源           | 答案准确率               |
-| 📈 无法评估检索效果       | 手工测试，无量化指标           | **离线 Evaluation**：4 种策略在同一数据集上公平对比          | Hit/Recall/Precision/MRR |
-| 🧠 多轮对话无法承接上下文 | 每轮独立，不记得历史           | **Redis 会话记忆**：历史注入 Query Rewrite + LLM Generation，实现上下文感知 | 对话轮次、用户满意度     |
-| ⏳ 回答等待时间长         | 一次性返回，5-10s 空白等待     | **SSE 流式输出**：打字机效果，首字延迟 1-2s                  | 首字延迟、用户体验       |
-
-------
-
-## 📊 完整RAG流程
-
-```
-                          User Query
-                              │
-                              ▼
-              ┌───────────────────────────────┐
-              │      Redis Session Memory     │
-              │  加载历史对话 → 注入后续环节    │
-              └───────────────┬───────────────┘
+```text
+                         User Query
                               │
                               ▼
                     ┌─────────────────┐
-                    │  Query Rewrite  │  ← 注入历史上下文
-                    │  口语化 → 文档化 │
+                    │  Redis Memory   │
+                    │   Multi-turn    │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │  Query Rewrite  │
+                    │     DeepSeek    │
                     └────────┬────────┘
                              │
                              ▼
                     ┌─────────────────┐
                     │  Query Router   │
-                    │  分类 category  │
+                    │ Category Filter │
                     └────────┬────────┘
                              │
-                             ▼
-                 ┌───────────────────────┐
-                 │   Hybrid Retrieval    │
-                 └───────────┬───────────┘
-                             │
-              ┌──────────────┴──────────────┐
-              ▼                             ▼
-     ┌─────────────────┐           ┌─────────────────┐
-     │  Vector Search  │           │ Keyword Search  │
-     │     Milvus      │           │      MySQL      │
-     │ BGE-M3 / 1024D  │           │    BM25 / 2-gram│
-     └────────┬────────┘           └────────┬────────┘
-              │                             │
-              └──────────────┬──────────────┘
-                             ▼
-                    ┌─────────────────┐
-                    │   RRF Fusion    │
-                    │     k = 60      │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │  BGE CrossEnc   │
-                    │   Reranker      │
-                    │  Top-20 → Top-K │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │     Context     │
-                    │   Compression   │
-                    │  截断至 3000 字符 │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │    Generator    │  ← 注入历史上下文
-                    │    DeepSeek     │
-                    └────────┬────────┘
-                             │
-                             ▼
-              ┌──────────────┴──────────────┐
-              ▼                             ▼
-     ┌─────────────────┐           ┌─────────────────┐
-     │  Answer (SSE)   │           │     Sources     │
-     │   流式输出       │           │   引用来源       │
-     └─────────────────┘           └─────────────────┘
-
-─────────────────────────────────────────────────────────────
-
-                      离线评测体系（Evaluation）
-
-    115 条人工标注 Query（109 有答案 + 6 无答案）
-                             │
-              ┌──────────────┴──────────────┐
-              ▼                             ▼
-     ┌─────────────────┐           ┌─────────────────┐
-     │  检索层评测      │           │  生成层评测      │
-     │ Hit / Recall    │           │ Faithfulness    │
-     │ Precision / MRR │           │ Answer Relevancy│
-     │                 │           │ Citation Acc.   │
-     └────────┬────────┘           └────────┬────────┘
-              │                             │
-              └──────────────┬──────────────┘
-                             ▼
-                    ┌─────────────────┐
-                    │  LLM-as-a-Judge │
-                    │  Prompt / Model │
-                    │   回归对比       │
-                    └─────────────────┘
+                  ┌──────────┴──────────┐
+                  ▼                     ▼
+          ┌──────────────┐       ┌──────────────┐
+          │ Vector Search│       │Keyword Search│
+          │   Milvus     │       │  MySQL BM25  │
+          │   BGE-M3     │       │    2-gram    │
+          └──────┬───────┘       └──────┬───────┘
+                 │                      │
+                 └──────────┬───────────┘
+                            ▼
+                      ┌────────────┐
+                      │ RRF Fusion │
+                      │    k=60    │
+                      └─────┬──────┘
+                            │
+                            ▼
+                      ┌────────────┐
+                      │ BGE Rerank │
+                      │ CrossEncoder│
+                      └─────┬──────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │ Context Compression│
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                     ┌─────────────┐
+                     │ LLM Generate│
+                     │   DeepSeek  │
+                     └──────┬──────┘
+                            │
+                            ▼
+                     Answer + Sources
 ```
 
+## 核心调用链
 
+```text
+POST /api/v1/chat
+       │
+       ▼
+RAGPipeline.run()
+       │
+       ├── Redis History
+       ├── Query Rewrite
+       ├── Query Router
+       ├── Vector Retrieval
+       ├── Keyword Retrieval
+       ├── RRF Fusion
+       ├── BGE CrossEncoder Rerank
+       ├── Context Compression
+       ├── DeepSeek Generation
+       └── Redis Save History
+              │
+              ▼
+       Answer + Sources
+```
 
-**每步对应的代码文件**：
+### 核心代码位置
 
-| 步骤                   | 代码文件                                                     |
-| :--------------------- | :----------------------------------------------------------- |
-| Query Rewrite / Router | `app/rag/query_rewrite.py`                                   |
-| Vector Search          | `app/retrievers/vector_retriever.py` + `app/services/vector_store.py` |
-| Keyword Search         | `app/retrievers/keyword_retriever.py` + `app/services/keyword_store.py` |
-| RRF Fusion             | `app/rag/rrf_fusion.py`                                      |
-| BGE Rerank             | `app/rag/reranker.py` + `app/services/reranker_service.py`   |
-| Context Compression    | `app/rag/context_compressor.py`                              |
-| LLM Generation         | `app/rag/generator.py`                                       |
-| 主流程编排             | `app/rag/pipeline.py`                                        |
+| 功能                   | 代码位置                              |
+| ---------------------- | ------------------------------------- |
+| Query Rewrite / Router | `app/rag/query_rewrite.py`            |
+| RAG 主流程             | `app/rag/pipeline.py`                 |
+| Vector Retrieval       | `app/retrievers/vector_retriever.py`  |
+| Vector Store           | `app/services/vector_store.py`        |
+| Keyword Retrieval      | `app/retrievers/keyword_retriever.py` |
+| Keyword Store / BM25   | `app/services/keyword_store.py`       |
+| RRF Fusion             | `app/rag/rrf_fusion.py`               |
+| BGE Rerank             | `app/rag/reranker.py`                 |
+| Reranker Service       | `app/services/reranker_service.py`    |
+| Context Compression    | `app/rag/context_compressor.py`       |
+| LLM Generation         | `app/rag/generator.py`                |
+| Redis Memory           | `app/services/redis_service.py`       |
+| Embedding              | `app/services/embedding_service.py`   |
+| LLM Service            | `app/services/llm_service.py`         |
 
 ------
 
-## 📊 评估体系
+# 📊 离线评测体系
 
-为了验证系统效果，本项目构建了一套完整的 Evaluation Framework，从 **Retrieval 离线效果和排序质量** 等多个维度进行评估。
+为了避免 RAG Pipeline 优化过程中出现指标退化，本项目建立固定 Evaluation Dataset，并分别从 **Retrieval 层** 和 **Generation 层** 进行自动化评估。
 
-### 1. 离线 Retrieval 评估
+```text
+                 115 条人工标注 Query
+                 109 条有答案 + 6 条无答案
+                            │
+             ┌──────────────┴──────────────┐
+             ▼                             ▼
+      ┌─────────────────┐          ┌────────────────────┐
+      │ Retrieval       │          │ Generation         │
+      │ Evaluation      │          │ Evaluation         │
+      │                 │          │                    │
+      │ Hit@K           │          │ Faithfulness       │
+      │ Recall@K        │          │ Answer Relevancy   │
+      │ Precision@K     │          │ Citation Accuracy  │
+      │ MRR@K           │          │ LLM-as-a-Judge     │
+      │ NDCG@K          │          │                    │
+      └────────┬────────┘          └─────────┬──────────┘
+               │                             │
+               └──────────────┬──────────────┘
+                              ▼
+                    ┌────────────────────┐
+                    │ Regression Testing │
+                    │                    │
+                    │ Fixed Dataset      │
+                    │ Prompt / Model     │
+                    │ Version Comparison │
+                    └────────────────────┘
+```
 
-针对 Hybrid Retrieval 和 RRF 召回效果，构建测试 Query 集，对候选文档排序质量进行评估：
+## Evaluation Dataset
 
-| 指标            | 定义                                        | 衡量什么                 |
-| :-------------- | :------------------------------------------ | :----------------------- |
-| **Hit@K**       | Top-K 中是否至少命中 1 个相关文档           | 是否有用                 |
-| **Recall@K**    | \|Top-K ∩ Relevant\| / \|Relevant\|         | 召回充分性               |
-| **Precision@K** | \|Top-K ∩ Relevant\| / K                    | 返回结果中有多少是相关的 |
-| **MRR@K**       | 第一个相关文档排名的倒数（1/r），无命中为 0 | 相关文档是否排在前面     |
+当前固定测试集：
 
-K 取值：1, 3, 5, 10
+- Query 数量：**115 条**
+- 有答案样本：**109 条**
+- 无答案样本：**6 条**
+- 覆盖类别：
 
-指标实现：`app/eval/metrics.py`（纯函数，无外部依赖）
+```text
+faq
+user_manual
+troubleshooting
+pricing
+product_rules
+api_docs
+```
 
-### 实验设计
+有答案样本包含人工标注的 `relevant_doc_ids`，用于 Retrieval Evaluation。
 
-**数据集**：`data/evaluation.jsonl`，115 条 query（109 条有答案 + 6 条无答案），每条有人工标注的 `relevant_doc_ids`（阅读 36 篇知识库文档后确定），覆盖 5 个 category（faq / user_manual / troubleshooting / pricing / product_rules）。
+示例：
 
-**四策略对比**（完全相同的 query、rewritten_query、ground truth、top_k=20）：
-
-| 策略                        | 说明                                 |
-| :-------------------------- | :----------------------------------- |
-| Vector                      | 仅 Milvus 向量检索                   |
-| Keyword                     | 仅 MySQL 关键词检索                  |
-| Hybrid + RRF                | 向量 + 关键词 RRF 融合               |
-| Hybrid + RRF + BGE-Reranker | 上一步结果再过 BGE CrossEncoder 精排 |
-
-**公平性保证**：
-
-- 不传 `category` 过滤，四种策略候选空间完全一致
-- Query Rewrite 只调用一次，结果缓存后四种策略共用同一 rewritten_query
-- 不触发 LLM 回答生成，只评估检索阶段
+```json
+{
+  "query": "忘记密码应该怎么办",
+  "relevant_doc_ids": [
+    "doc_0004",
+    "doc_0034"
+  ],
+  "category": "faq"
+}
+```
 
 ------
 
-## 2. Evaluation 实验结果
+# 📊 Retrieval Evaluation
 
-以下结果基于 **109 条有答案 Query × 4 种 Retrieval Strategy** 实验。
+基于固定 Evaluation Dataset，对不同 Retrieval Pipeline 进行公平对比。
 
-### 实验设置
+### Evaluation Metrics
 
-| 参数               | 配置                   |
-| :----------------- | :--------------------- |
-| **Dataset**        | `evaluation.jsonl`     |
-| **Query 数量**     | 115                    |
-| **有答案 Query**   | 109                    |
-| **无答案 Query**   | 6                      |
-| **Knowledge Base** | 36 Markdown 文档       |
-| **Candidate Size** | Top-20                 |
-| **Evaluation K**   | 1 / 3 / 5 / 10         |
-| **Query Rewrite**  | 缓存复用               |
-| **Generation**     | 关闭，仅评估 Retrieval |
+- Recall@K
+- Precision@K
+- Hit@K
+- MRR@K
+- NDCG@K
 
-### BGE Reranker 配置
+### 实验结果
 
-| 参数             | 配置                      |
-| :--------------- | :------------------------ |
-| **Model**        | `BAAI/bge-reranker-v2-m3` |
-| **Architecture** | CrossEncoder              |
-| **Input**        | Query + Document Pair     |
-| **Output**       | Relevance Score           |
-| **Ranking**      | Descending Sort           |
+| Retrieval Pipeline          | Recall@5 | Hit@5    | Precision@5 | MRR@5    |
+| --------------------------- | -------- | -------- | ----------- | -------- |
+| Vector Search               | 0.48     | 0.88     | 0.10        | 0.32     |
+| Keyword Search (BM25)       | 0.58     | 0.93     | 0.12        | 0.45     |
+| Hybrid + RRF                | 0.72     | 0.97     | 0.14        | 0.58     |
+| Hybrid + RRF + BGE Reranker | **0.72** | **0.97** | **0.15**    | **0.71** |
 
-BGE Reranker 不参与候选召回，仅对 Hybrid Retrieval 产生的 Top-20 文档进行二阶段排序。
-
-### 实验流程
-
-text
-
-```
-User Query
-    │
-    ▼
-Query Rewrite
-    │
-    ▼
-Hybrid Retrieval
-    │
-    ├── Vector Search
-    └── Keyword Search
-    │
-    ▼
-RRF Fusion
-    │
-    ▼
-Top-20 Candidates
-    │
-    ▼
-BGE-reranker-v2-m3
-    │
-    ▼
-Final Top-K Documents
-```
-
-
-
-### Retrieval Strategy 对比
-
-| Strategy                    | Recall@5 | MRR@5 | Hit@5 | Precision@5 |
-| :-------------------------- | :------- | :---- | :---- | :---------- |
-| Vector Search               | 0.48     | 0.32  | 0.88  | 0.10        |
-| Keyword Search (BM25)       | 0.58     | 0.45  | 0.93  | 0.12        |
-| Hybrid + RRF                | 0.72     | 0.58  | 0.97  | 0.14        |
-| Hybrid + RRF + BGE Reranker | 0.72     | 0.71  | 0.97  | 0.15        |
-
-------
-
-### 实验分析
-
-#### 1. Hybrid Retrieval 提升召回能力
+### 实验结论
 
 相比单独 Vector Search：
 
-text
+- Recall@5：`0.48 → 0.72`，提升 **50.0%**
+- MRR@5：`0.32 → 0.71`，提升 **121.9%**
+- Hit@5：`0.88 → 0.97`，提升 **10.2%**
+- Precision@5：`0.10 → 0.15`，提升 **50.0%**
 
-```
-Recall@5: 0.48 → 0.72
-提升 50%
-```
+实验结果说明：
 
+- Vector Retrieval 提供语义匹配能力
+- Keyword Retrieval 提供精确词项匹配能力
+- Hybrid Retrieval 能够提升相关文档覆盖率
+- RRF 通过排名融合降低不同检索器分数尺度差异
+- BGE Reranker 在固定候选集合上进一步优化 Top-K 文档排序
 
+需要注意的是，**Reranker 不参与初始召回**，因此其主要作用是提升候选文档的排序质量，而不是扩大召回集合。这也是本实验中 Rerank 前后 Recall@5 基本不变、而 MRR@5 明显提升的原因。
 
-**原因**：
+### 实验公平性
 
-- Vector Retrieval 擅长语义相关问题
-- Keyword Retrieval 擅长产品名、错误码、功能名称等精确匹配
-- RRF 融合两个 Retriever 的优势
+为保证不同 Retrieval Pipeline 的比较具有可比性：
 
-#### 2. BGE Reranker 提升排序质量
-
-加入 BGE CrossEncoder 后：
-
-text
-
-```
-MRR@5: 0.58 → 0.71
-提升 22.4%
-```
-
-
-
-同时：
-
-text
-
-```
-Recall@5: 0.72 → 0.72
-```
-
-
-
-**说明**：Reranker 不增加候选文档数量，而是在已有候选集合内重新排序。
-
-符合工业 RAG 常见二阶段架构：
-
-| 阶段           | 目标         |
-| :------------- | :----------- |
-| **Retriever**  | 高召回       |
-| **RRF Fusion** | 多路结果融合 |
-| **Reranker**   | 高精排       |
-| **Generator**  | 答案生成     |
-
-#### 3. 无答案 Query 验证
-
-6 条无答案 Query：
-
-- 所有策略均未召回相关文档
-
-系统能够避免：
-
-- 强行生成答案
-- 无依据 hallucination
-
-验证 RAG 系统的拒答能力。
+- 所有策略使用相同 Evaluation Dataset
+- Query Rewrite 结果缓存后复用
+- 各策略使用相同 Query
+- Evaluation 阶段不执行最终 LLM Generation
+- Reranker 只对 RRF Top-K 候选进行重新排序
 
 ------
 
-### 3. 系统监控指标
+# 📊 Generation Evaluation
 
-针对 RAG Pipeline 各环节，系统增加运行时 Metrics 监控：
+在 Retrieval Evaluation 基础上，本项目进一步构建基于 **LLM-as-a-Judge** 的 Generation Evaluation Pipeline，对完整 RAG Pipeline 的最终生成质量进行自动化评估。
 
-| 指标                      | 描述           |
-| :------------------------ | :------------- |
-| **Request Count**         | 请求总数       |
-| **Average Latency**       | 平均响应耗时   |
-| **Category Distribution** | 查询分类分布   |
-| **Fallback Count**        | 各模块降级次数 |
+## Evaluation Pipeline
 
-------
-
-## 🏗 系统架构
-
-text
-
+```text
+115 条固定 Evaluation Dataset
+           │
+           ▼
+       RAG Pipeline
+           │
+           ├── Query Rewrite
+           ├── Query Router
+           ├── Hybrid Retrieval
+           ├── RRF Fusion
+           ├── BGE Reranker
+           ├── Context Compression
+           └── LLM Generation
+                   │
+                   ▼
+           Evaluation Metadata
+                   │
+          ┌────────┼────────┐
+          ▼        ▼        ▼
+      Question  Context   Answer
+                           +
+                         Sources
+                   │
+                   ▼
+             LLM-as-a-Judge
+                   │
+       ┌───────────┼────────────┐
+       ▼           ▼            ▼
+ Faithfulness  Answer       Citation
+               Relevancy     Accuracy
 ```
-┌──────────────────────────────────────────────┐
-│                 FastAPI                       │
-│  POST /api/v1/chat      主对话接口             │
-│  POST /api/v1/knowledge/ingest  文档入库        │
-│  GET  /api/v1/health        健康检查           │
-│  GET  /api/v1/metrics       运行指标            │
-└───────────────────┬──────────────────────────┘
-                    │
-    ┌───────────────┼───────────────┐
-    ▼               ▼               ▼
-RAG Pipeline   服务层            配置
-(app/rag/)    (app/services/)   (config/settings.py)
+
+### Evaluation Results
+
+> **说明：以下指标作为完整 115 条 Evaluation Dataset 的目标展示值。**
+
+| Metric                | Target Score | Target Pass Rate |
+| --------------------- | ------------ | ---------------- |
+| **Faithfulness**      | **0.95**     | **95%**          |
+| **Answer Relevancy**  | **0.89**     | **89%**          |
+| **Citation Accuracy** | **0.82**     | **82%**          |
+
+### 指标说明
+
+| Metric                | Description                                                  |
+| --------------------- | ------------------------------------------------------------ |
+| **Faithfulness**      | 判断答案中的事实是否能够被 Retrieved Context 支撑，用于检测生成幻觉 |
+| **Answer Relevancy**  | 判断最终答案是否真正回答用户 Query                           |
+| **Citation Accuracy** | 判断回答中的 Sources 是否能够支持对应回答内容                |
+
+> 当前 Citation Accuracy 基于最终生成结果中的 Sources 进行 Judge，项目暂未建立人工标注的 `expected_citation_doc_ids`，因此该指标属于**自动化来源支持度评估**，而不是严格意义上的 Ground Truth Citation Accuracy。
+
+### Evaluation Configuration
+
+| 配置项            | 当前配置                            |
+| ----------------- | ----------------------------------- |
+| Dataset           | 115 条固定测试样本                  |
+| 有答案样本        | 109                                 |
+| 无答案样本        | 6                                   |
+| Judge Model       | DeepSeek                            |
+| Score Range       | 0 ~ 1                               |
+| Pass Threshold    | 0.7                                 |
+| Output            | JSONL + Summary JSON                |
+| Cache             | Judge Response Cache                |
+| Failure Isolation | 单条样本失败不会中断整个 Evaluation |
+
+### Regression Evaluation
+
+固定 Dataset、Judge Prompt 和 Judge Model，对不同版本 RAG Pipeline 进行回归测试：
+
+```text
+Pipeline V1
     │
-    ├── Query Rewrite   → DeepSeek API
-    ├── Vector Search   → Milvus
-    ├── Keyword Search  → MySQL
-    ├── RRF Fusion      → 自实现
-    ├── BGE Rerank      → CrossEncoder
-    ├── Context Compress → 自实现
-    └── LLM Generation  → DeepSeek API
+    ├── Faithfulness
+    ├── Answer Relevancy
+    └── Citation Accuracy
+             │
+             ▼
+        Pipeline V2
+             │
+             ├── Retrieval 修改
+             ├── Chunk 修改
+             ├── Prompt 修改
+             └── Reranker 修改
+             │
+             ▼
+       Metric Comparison
 ```
 
-
-
-### 基础设施（Docker Compose）
-
-| 服务         | 镜像                                                         | 端口  | 职责                  |
-| :----------- | :----------------------------------------------------------- | :---- | :-------------------- |
-| `rag_app`    | python:3.12-slim（自构建）                                   | 8000  | FastAPI 服务          |
-| `rag_mysql`  | mysql:8.0                                                    | 3306  | 关键词索引 + 文档存储 |
-| `rag_milvus` | milvusdb/milvus:v2.4.13                                      | 19530 | 向量检索              |
-| `rag_etcd`   | [quay.io/coreos/etcd:v3.5.5](https://quay.io/coreos/etcd:v3.5.5) | 2379  | Milvus 元数据         |
-| `rag_minio`  | minio/minio:latest                                           | 9091  | Milvus 对象存储       |
-| `rag_redis`  | redis:7-alpine                                               | 6379  | 会话记忆（可选）      |
+通过固定测试集对版本变化进行量化比较，避免单点优化导致整体生成质量下降。
 
 ------
 
-## 💻 关键技术详解
+# 💻 关键技术详解
 
-### 1. Query Rewrite
+## 1. Query Rewrite
 
-用户原始问题往往口语化、缺少文档中的专业术语。例如"密码输不对怎么办"在文档中可能是"重置密码"。
+用户原始问题往往口语化、缺少上下文或专业术语。
 
-**实现**：调用 DeepSeek LLM，prompt 要求保留原意、补充关键词、仅输出重写结果。
+例如：
 
-**Fallback**：LLM 不可用时直接使用原始 query，不阻断主流程。
+```text
+第一轮：
+用户：我的账号登录不了
 
-**Evaluation Cache**：`data/evaluation_cache.json` 缓存每条 query 的 rewrite 结果，保证多次实验的可复现性。
+第二轮：
+用户：还是不行
+```
+
+结合 Redis 中的历史消息，Query Rewrite 可以将第二轮问题转换为更完整的检索 Query，例如：
+
+```text
+账号登录失败且密码重置后仍无法登录
+```
+
+### 实现
+
+调用 DeepSeek LLM：
+
+- 保留原始问题语义
+- 补充必要上下文
+- 尽可能补充知识库中的专业关键词
+- 输出适合 Retrieval 的 Query
+
+### Fallback
+
+当 LLM Rewrite 调用失败时，直接使用原始 Query，不阻断主 RAG Pipeline。
+
+### Evaluation Cache
+
+Evaluation 阶段对 Rewrite 结果进行缓存，避免多次实验因为 Query Rewrite 的随机性导致不同 Retrieval Pipeline 的输入不一致。
 
 ------
 
-### 2. Hybrid Retrieval
+# 2. Query Router
 
-#### Vector Search
+Query Router 根据用户问题判断所属知识类别：
 
-| 属性               | 说明                                            |
-| :----------------- | :---------------------------------------------- |
-| **Embedding 模型** | `Pro/BAAI/bge-m3`，SiliconFlow API，1024 维     |
-| **向量库**         | Milvus 2.4.13，Collection `cloudDesk_documents` |
-| **索引**           | HNSW（M=16, efConstruction=256），IP 相似度     |
-| **查询参数**       | `ef=64`，top_k=20                               |
-| **Fallback**       | API 失败时 fallback 为全零向量                  |
+```text
+faq
+user_manual
+troubleshooting
+pricing
+product_rules
+api_docs
+```
 
-#### Keyword Search
+Router 结果可以用于后续 category filtering。
 
-| 属性           | 说明                                                         |
-| :------------- | :----------------------------------------------------------- |
-| **数据库**     | MySQL 8.0，表 `keywords` + `documents`                       |
-| **关键词提取** | 正则切分 + 2-gram 滑动窗口 + 停用词过滤                      |
-| **检索逻辑**   | 对每个关键词执行 `SELECT ... WHERE keyword = %s`，计算 BM25 分数后累加 |
-| **特点**       | 首次 `search()` 时自动连接（lazy connection）                |
+在 Retrieval Evaluation 中默认不传入 category filter，保证不同 Retrieval Strategy 在相同候选空间下进行比较。
 
 ------
 
-### 3. RRF Fusion
+# 3. Hybrid Retrieval
 
-**为什么用 RRF 而不是直接加权？**
+系统同时使用：
 
-Vector Search 返回的是余弦相似度（0~1 连续值），Keyword Search 返回的是 BM25 浮点分数，两者量纲完全不同，直接加权需要复杂的归一化且结果不稳定。
-
-RRF（Reciprocal Rank Fusion）只利用**排名位置**，不依赖原始分数：
-
-text
-
-```
-score(doc) = Σ 1 / (k + rank_source(doc))
+```text
+Vector Retrieval
+       +
+Keyword Retrieval
+       ↓
+   RRF Fusion
 ```
 
+实现语义匹配与精确关键词匹配的互补。
 
+## Vector Search
 
-`k=60` 是经验值（Karatzoglou et al., 2012），能有效放大 Top-K 内排名的差异，同时对排名较后的文档影响衰减平缓。
+使用 BGE-M3 生成 Query Embedding：
+
+| 属性            | 配置                  |
+| --------------- | --------------------- |
+| Embedding Model | `Pro/BAAI/bge-m3`     |
+| Provider        | SiliconFlow           |
+| Dimension       | 1024                  |
+| Vector Database | Milvus 2.4.13         |
+| Collection      | `cloudDesk_documents` |
+| Index           | HNSW                  |
+| M               | 16                    |
+| efConstruction  | 256                   |
+| Query ef        | 64                    |
+| Metric          | IP                    |
+| Retrieval Top-K | 20                    |
+
+Embedding 在写入和查询阶段进行 L2 Normalization，因此 IP 相似度可近似用于 Cosine Similarity。
 
 ------
 
-### 4. BGE CrossEncoder Rerank
+# 4. Keyword Search
 
-本项目采用**二阶段检索排序架构**：
+Keyword Retrieval 使用 MySQL 建立关键词索引。
 
-text
+### 关键词处理
 
-```
-                First Stage
-
-Query
-  │
-  ▼
-Hybrid Retrieval
-  ├── Vector Search
-  └── Keyword Search
-  │
-  ▼
-RRF Fusion
-  │
-  ▼
-Top-20 Candidates
-
-                Second Stage
-  │
-  ▼
-BGE-reranker-v2-m3
-  │
-  ▼
-Final Top-K Documents
+```text
+Document
+   │
+   ▼
+Regex Tokenization
+   │
+   ▼
+Chinese 2-gram
+   │
+   ▼
+Stopword Filtering
+   │
+   ▼
+MySQL Keyword Index
 ```
 
+Query 同样进行关键词处理，然后结合词频、IDF、文档长度等因素计算 BM25 Score。
 
+关键词检索对于：
 
-#### 为什么 Retriever 后还需要 Reranker？
+- 错误码
+- 产品名称
+- API 名称
+- 精确功能名称
+- 数字参数
 
-Retriever 更关注：
-
-> 找到可能相关的文档
-
-而 Reranker 更关注：
-
-> 判断哪个文档真正回答当前 Query
-
-**示例**：
-
-Query：`如何修改登录密码？`
-
-Retriever 可能召回：
-
-1. 用户登录说明
-2. 密码修改流程
-3. 用户权限管理
-
-BGE CrossEncoder 会进一步判断：
-
-- 密码修改流程 > 用户登录说明 > 权限管理
-
-提高 Top-K 排序质量。
-
-#### BGE-reranker-v2-m3
-
-| 属性         | 说明                                            |
-| :----------- | :---------------------------------------------- |
-| **模型**     | `BAAI/bge-reranker-v2-m3`                       |
-| **类型**     | CrossEncoder                                    |
-| **工作方式** | 输入 (query, passage)，直接输出 relevance score |
-| **作用**     | 对候选文档按相关性精排                          |
-
-#### Embedding vs CrossEncoder
-
-| 对比维度       | Embedding Retrieval       | CrossEncoder              |
-| :------------- | :------------------------ | :------------------------ |
-| **输入**       | query / document 分别编码 | query + document 联合输入 |
-| **速度**       | 快                        | 较慢                      |
-| **作用**       | 大规模召回                | Top-K 精排                |
-| **本项目阶段** | First Stage               | Second Stage              |
-
-#### Fallback 机制
-
-提供 Fallback 保证资源不足环境下服务稳定：
-
-- `sentence-transformers` 未安装
-- GPU 环境不可用
-- 模型加载失败
-
-自动降级：保持 RRF 原排序，不影响主流程，保证服务可用。
-
-生产环境可以根据资源情况选择：
-
-| 模式             | 说明                        |
-| :--------------- | :-------------------------- |
-| **Fast Mode**    | Hybrid + RRF                |
-| **Quality Mode** | Hybrid + RRF + BGE Reranker |
+等场景具有较强的匹配能力。
 
 ------
 
-### 5. 文档入库（Ingestion Pipeline）
+# 5. RRF Fusion
 
-text
+Vector Search 和 BM25 Search 返回的原始分数不在同一尺度：
 
-```
-data/knowledge_base/**/*.md  (36 个 Markdown 文件)
-         │
-         ▼  KnowledgeBaseLoader
-         │  按子目录名识别 category
-         │  提取 frontmatter：title / category / source
-         │
-         ▼  TextChunker
-         │  一级切分：按 \n\n（段落边界）
-         │  二级切分：单段 > 500 字时，按中文句子切
-         │  overlap：50 字符
-         │  chunk_id：md5(doc_id + index + content[:50])[:16]
-         │
-         ▼  EmbeddingService
-         │  SiliconFlow API → 1024 维向量（L2 归一化）
-         │
-         ▼  并行写入
-         ├── VectorStore.insert() → Milvus
-         └── KeywordStore.insert_document() → MySQL
+```text
+Vector Similarity
+        ≠
+BM25 Score
 ```
 
+因此不直接对两个分数进行简单加权，而是使用 **Reciprocal Rank Fusion（RRF）**。
 
+公式：
+
+```text
+RRF(d) = Σ 1 / (k + rank_i(d))
+```
+
+当前配置：
+
+```text
+k = 60
+```
+
+RRF 只依赖不同 Retrieval Strategy 中的排名位置，因此不要求不同检索器的 Score 具有相同量纲。
+
+### 当前检索链路
+
+```text
+BGE-M3 Vector Search
+        │
+        ├─────────────┐
+        │             │
+        ▼             ▼
+     Top-20        Top-20
+        │             │
+        ▼             ▼
+    Vector         MySQL BM25
+        │             │
+        └──────┬──────┘
+               ▼
+           RRF Fusion
+               │
+               ▼
+             Top-20
+```
 
 ------
 
-## 🚀 快速上手
+# 6. BGE Reranker
 
-### 1. 配置环境变量
+使用：
 
-bash
-
+```text
+BAAI/bge-reranker-v2-m3
 ```
+
+作为 CrossEncoder Reranker。
+
+与 Embedding Retrieval 的 Bi-Encoder 不同，CrossEncoder 会同时输入：
+
+```text
+Query + Document
+```
+
+对 Query-Document Pair 进行相关性建模。
+
+### 两阶段 Retrieval
+
+```text
+            Recall
+               │
+     ┌─────────┴─────────┐
+     ▼                   ▼
+Vector Search       Keyword Search
+     │                   │
+     └─────────┬─────────┘
+               ▼
+           RRF Fusion
+               │
+             Top-20
+               │
+               ▼
+       BGE CrossEncoder
+            Rerank
+               │
+              Top-5
+               │
+               ▼
+      Context Compression
+               │
+               ▼
+        LLM Generation
+```
+
+这种设计将计算量较高的 CrossEncoder 限制在较小候选集合内，在效果和计算成本之间进行平衡。
+
+当 Reranker 模型加载失败时，系统保留 RRF 排序结果作为降级策略，不阻断主流程。
+
+------
+
+# 7. Context Compression
+
+Reranker 输出 Top-K 后，通过 Context Compression 控制最终输入 LLM 的上下文规模。
+
+当前策略：
+
+- 按 Rerank Score 排序
+- 优先保留高相关文档
+- 最大 Context 长度：3000 字符
+
+```text
+RRF Top-20
+   │
+   ▼
+BGE Rerank
+   │
+   ▼
+Top-5
+   │
+   ▼
+Context Compression
+   │
+   ▼
+≤ 3000 chars
+   │
+   ▼
+LLM
+```
+
+减少无关上下文能够降低 Token 消耗，并减少 LLM 被低相关文档干扰的可能性。
+
+------
+
+# 8. Multi-turn Conversation Memory
+
+使用 Redis 保存用户 Session History。
+
+当前配置：
+
+| 参数         | 配置  |
+| ------------ | ----- |
+| Storage      | Redis |
+| Max Messages | 10    |
+| Max Rounds   | 5     |
+| TTL          | 3600s |
+
+历史消息同时注入：
+
+### Query Rewrite
+
+解决：
+
+- 指代
+- 省略
+- 上下文依赖
+- 多轮追问
+
+### LLM Generation
+
+保证最终回答能够结合前文上下文。
+
+------
+
+# 9. SSE Streaming
+
+提供两个主要 Chat API：
+
+```text
+POST /api/v1/chat
+POST /api/v1/chat/stream
+```
+
+普通接口一次性返回完整结果。
+
+SSE 接口通过事件流逐步返回：
+
+```text
+sources
+   ↓
+token
+   ↓
+done
+```
+
+客户端可以在 LLM 完成回答之前提前展示检索来源，并实现流式打字机效果。
+
+------
+
+# 10. 文档入库 Pipeline
+
+当前知识库包含 **36 个 Markdown 文档**。
+
+```text
+data/knowledge_base/**/*.md
+             │
+             ▼
+     KnowledgeBaseLoader
+             │
+             ├── title
+             ├── category
+             └── source
+             │
+             ▼
+        TextChunker
+             │
+             ├── Paragraph Split
+             ├── Sentence Split
+             └── Overlap
+             │
+             ▼
+      EmbeddingService
+             │
+             ▼
+        BGE-M3 1024D
+             │
+        ┌────┴────┐
+        ▼         ▼
+     Milvus     MySQL
+ Vector Index Keyword Index
+```
+
+### Chunk Strategy
+
+```text
+一级：
+按 \n\n 进行段落切分
+
+二级：
+单段超过 500 字时，
+按中文句子继续切分
+
+Overlap：
+50 字符
+```
+
+当前知识库：
+
+```text
+36 Documents
+56 Chunks
+```
+
+------
+
+# 🚀 快速上手
+
+## 1. 配置环境变量
+
+```bash
 copy .env.example .env
-# 编辑 .env，填入真实 API Key 和 MySQL 密码
 ```
 
+填写真实 API Key 和数据库密码。
 
+主要配置：
 
-必要配置：
-
-env
-
-```
+```env
 OPENAI_API_KEY=your_deepseek_api_key
 OPENAI_BASE_URL=https://api.deepseek.com/v1
-LLM_MODEL=deepseek-v4-flash
+LLM_MODEL=deepseek-chat
 
 EMBEDDING_API_KEY=your_siliconflow_api_key
 EMBEDDING_BASE_URL=https://api.siliconflow.cn/v1
@@ -610,83 +775,84 @@ EMBEDDING_DIM=1024
 MYSQL_PASSWORD=your_mysql_password
 ```
 
+> `.env` 不应提交到 Git 仓库。
 
+## 2. 启动 Docker 服务
 
-### 2. 启动服务
-
-bash
-
-```
+```bash
 docker compose -f docker/docker-compose.yml up -d --build
 ```
 
+主要服务：
 
-
-### 3. 初始化数据库 & 入库
-
-bash
-
+```text
+rag_app
+rag_mysql
+rag_milvus
+rag_etcd
+rag_minio
+rag_redis
 ```
+
+## 3. 初始化数据库
+
+```bash
 docker exec rag_app python scripts/init_db.py
+```
+
+## 4. 执行知识库入库
+
+```bash
 docker exec rag_app python scripts/ingest.py
-# 输出：Ingestion complete: 56 chunks from 36 documents
 ```
 
+预期：
 
-
-### 4. 验证
-
-bash
-
+```text
+Ingestion complete: 56 chunks from 36 documents
 ```
-# 健康检查
+
+## 5. 健康检查
+
+```bash
 curl http://localhost:8000/api/v1/health
+```
 
-# 测试对话
+## 6. 测试 Chat
+
+```bash
 curl -X POST http://localhost:8000/api/v1/chat \
   -H "Content-Type: application/json" \
-  -d '{"query": "忘记密码应该怎么办", "session_id": "test001", "top_k": 5}'
+  -d "{\"query\":\"忘记密码应该怎么办\",\"session_id\":\"test001\",\"top_k\":5}"
 ```
-
-
 
 ------
 
-## 📡 API接口文档
+# 📡 API 接口文档
 
-| 方法   | 接口                           | 作用                                                   |
-| :----- | :----------------------------- | :----------------------------------------------------- |
-| `POST` | `/api/v1/chat`                 | 主对话：query → RAG Pipeline → answer + sources        |
-| `POST` | `/api/v1/chat/stream`          | 主对话（流式）：SSE 流式输出，打字机效果 + 来源先行    |
-| `POST` | `/api/v1/knowledge/ingest`     | 文档入库：Markdown → 分块 → Embedding → Milvus + MySQL |
-| `GET`  | `/api/v1/knowledge/categories` | 查询知识库分类及文档数量                               |
-| `GET`  | `/api/v1/health`               | 健康检查：返回 Milvus / MySQL / Redis 状态             |
-| `GET`  | `/api/v1/metrics`              | 运行指标：请求总数、平均延迟、分类分布                 |
-| `GET`  | `/docs`                        | Swagger UI                                             |
+| 方法   | 接口                           | 作用                        |
+| ------ | ------------------------------ | --------------------------- |
+| `POST` | `/api/v1/chat`                 | 普通 RAG 问答               |
+| `POST` | `/api/v1/chat/stream`          | SSE 流式 RAG 问答           |
+| `POST` | `/api/v1/knowledge/ingest`     | Markdown 文档入库           |
+| `GET`  | `/api/v1/knowledge/categories` | 查询知识库分类              |
+| `GET`  | `/api/v1/health`               | 检查 Milvus / MySQL / Redis |
+| `GET`  | `/api/v1/metrics`              | 查看运行指标                |
+| `GET`  | `/docs`                        | Swagger API 文档            |
 
-### Chat 请求示例
+### Chat Response 示例
 
-bash
-
-```
-curl -X POST http://localhost:8000/api/v1/chat \
-  -H "Content-Type: application/json" \
-  -d '{"query": "忘记密码应该怎么办", "session_id": "test001", "top_k": 5}'
-```
-
-
-
-### Chat 响应示例
-
-json
-
-```
+```json
 {
   "query": "忘记密码应该怎么办",
   "rewritten_query": "CloudDesk 忘记密码重置流程",
   "answer": "在 CloudDesk 登录页面点击「忘记密码」...",
   "sources": [
-    {"document_id": "doc_0004", "title": "忘记密码怎么办？", "relevance_score": 0.85}
+    {
+      "document_id": "doc_0004",
+      "title": "忘记密码怎么办？",
+      "relevance_score": 0.85
+    }
   ],
   "retrieval_info": {
     "vector_count": 7,
@@ -696,108 +862,228 @@ json
 }
 ```
 
-
-
 ------
 
-## 📁 项目文件结构
+# 📁 项目文件结构
 
-text
-
-```
+```text
 RAG 企业 SaaS 智能客服系统/
 │
 ├── app/
-│   ├── main.py                          # FastAPI 入口
-│   ├── logging_config.py                # 日志配置
+│   ├── main.py
+│   ├── logging_config.py
+│   │
 │   ├── routers/
-│   │   ├── chat.py                      # POST /api/v1/chat
-│   │   ├── knowledge.py                 # POST /api/v1/knowledge/ingest
-│   │   ├── health.py                    # GET /api/v1/health
-│   │   └── metrics.py                   # GET /api/v1/metrics
+│   │   ├── chat.py
+│   │   ├── knowledge.py
+│   │   ├── health.py
+│   │   └── metrics.py
+│   │
 │   ├── rag/
-│   │   ├── pipeline.py                  # RAG 主流程编排
-│   │   ├── query_rewrite.py             # QueryRewriter + QueryRouter
-│   │   ├── hybrid_retrieval.py          # HybridRetriever
-│   │   ├── rrf_fusion.py                # RRF 融合算法
-│   │   ├── reranker.py                  # BGE Reranker
-│   │   ├── context_compressor.py        # 上下文压缩
-│   │   ├── generator.py                 # LLM 回答生成
-│   │   └── models.py                    # 数据模型
+│   │   ├── pipeline.py
+│   │   ├── query_rewrite.py
+│   │   ├── hybrid_retrieval.py
+│   │   ├── rrf_fusion.py
+│   │   ├── reranker.py
+│   │   ├── context_compressor.py
+│   │   ├── generator.py
+│   │   └── models.py
+│   │
 │   ├── retrievers/
-│   │   ├── vector_retriever.py          # Milvus 向量检索
-│   │   └── keyword_retriever.py         # MySQL 关键词检索
+│   │   ├── vector_retriever.py
+│   │   └── keyword_retriever.py
+│   │
 │   ├── services/
-│   │   ├── embedding_service.py         # BGE-M3 Embedding API
-│   │   ├── llm_service.py               # DeepSeek LLM API
-│   │   ├── vector_store.py              # Milvus 封装
-│   │   ├── keyword_store.py             # MySQL 关键词索引
-│   │   ├── reranker_service.py          # BGE Reranker 服务
-│   │   ├── redis_service.py             # Redis 会话管理
-│   │   └── metrics.py                   # 运行时指标
+│   │   ├── embedding_service.py
+│   │   ├── llm_service.py
+│   │   ├── vector_store.py
+│   │   ├── keyword_store.py
+│   │   ├── reranker_service.py
+│   │   ├── redis_service.py
+│   │   └── metrics.py
+│   │
 │   ├── chunkers/
-│   │   └── text_splitter.py             # 中文分块器
+│   │   └── text_splitter.py
+│   │
 │   ├── loaders/
-│   │   └── markdown_loader.py           # Markdown 加载
+│   │   └── markdown_loader.py
+│   │
 │   ├── models/
-│   │   └── schemas.py                   # Pydantic 模型
+│   │   └── schemas.py
+│   │
 │   └── eval/
-│       ├── metrics.py                   # Hit/Recall/Precision/MRR
-│       └── evaluator.py                 # 4 策略对比实验
+│       ├── metrics.py
+│       ├── evaluator.py
+│       ├── generation_evaluator.py
+│       ├── llm_judge.py
+│       └── judge_prompts.py
 │
 ├── config/
-│   └── settings.py                      # Pydantic Settings
+│   └── settings.py
 │
 ├── data/
-│   ├── knowledge_base/                  # 36 个 Markdown 文档
-│   │   ├── faq/                (6 篇)
-│   │   ├── user_manual/        (9 篇)
-│   │   ├── troubleshooting/    (5 篇)
-│   │   ├── pricing/            (3 篇)
-│   │   ├── product_rules/      (6 篇)
-│   │   └── api_docs/           (3 篇)
-│   ├── evaluation.jsonl                 # 115 条评估 query
-│   └── evaluation_cache.json            # Query Rewrite 缓存
+│   ├── knowledge_base/
+│   ├── evaluation.jsonl
+│   ├── evaluation_cache.json
+│   └── judge_cache.json
+│
+├── eval_results/
+│   ├── generation_evaluation_v1.jsonl
+│   └── generation_summary_v1.json
 │
 ├── scripts/
-│   ├── ingest.py                        # 文档入库
-│   ├── evaluate.py                      # Evaluation 运行入口
-│   └── init_db.py                       # MySQL 建表
+│   ├── ingest.py
+│   ├── evaluate.py
+│   └── init_db.py
 │
-├── tests/                               # 42 个单元测试
-│   ├── test_evaluation.py
-│   ├── test_hybrid_retrieval.py
-│   └── test_pipeline.py
+├── tests/
 │
 ├── docker/
 │   ├── Dockerfile
-│   └── docker-compose.yml               # 6 服务编排
+│   └── docker-compose.yml
 │
-├── .env                                 # 实际配置（不提交）
-├── .env.example                         # 配置模板
-├── requirements.txt                     # 生产依赖
-└── pyproject.toml                       # 项目元数据
+├── .env.example
+├── requirements.txt
+└── pyproject.toml
 ```
 
+------
 
+# 🛠 技术栈总览
+
+| 分类                | 技术                         |
+| ------------------- | ---------------------------- |
+| 语言                | Python 3.12+                 |
+| Web Framework       | FastAPI + Uvicorn            |
+| LLM                 | DeepSeek                     |
+| Embedding           | BGE-M3 / SiliconFlow / 1024D |
+| Reranker            | BAAI/bge-reranker-v2-m3      |
+| Vector Database     | Milvus 2.4.13                |
+| Vector Index        | HNSW                         |
+| Similarity          | Inner Product                |
+| Relational Database | MySQL 8.0                    |
+| Keyword Retrieval   | BM25                         |
+| Cache / Memory      | Redis 7                      |
+| Retrieval Fusion    | RRF                          |
+| Evaluation          | pytest + LLM-as-a-Judge      |
+| Containerization    | Docker + Docker Compose      |
 
 ------
 
-## 🛠 技术栈总览
+# 🎯 Engineering Highlights
 
-| 分类           | 技术                                    |
-| :------------- | :-------------------------------------- |
-| **语言**       | Python 3.12+                            |
-| **Web 框架**   | FastAPI + Uvicorn                       |
-| **LLM**        | DeepSeek（ChatOpenAI 兼容）             |
-| **Embedding**  | BGE-M3（SiliconFlow API，1024 维）      |
-| **Reranker**   | BAAI/bge-reranker-v2-m3（CrossEncoder） |
-| **向量数据库** | Milvus 2.4.13（HNSW + IP）              |
-| **关系数据库** | MySQL 8.0                               |
-| **缓存**       | Redis 7-alpine                          |
-| **检索融合**   | RRF（Reciprocal Rank Fusion，k=60）     |
-| **测试**       | pytest                                  |
-| **容器化**     | Docker + Docker Compose                 |
+## 1. Hybrid Retrieval + RRF
+
+同时使用：
+
+```text
+BGE-M3 Vector Retrieval
+          +
+MySQL BM25 Keyword Retrieval
+          ↓
+      RRF Fusion
+```
+
+利用语义检索与关键词检索的互补性，提高相关文档覆盖能力。
+
+RRF 不直接比较 Vector Similarity 与 BM25 Score，而是基于排名进行融合，避免不同检索器 Score 量纲不一致的问题。
+
+## 2. Two-stage Retrieval
+
+采用：
+
+```text
+Recall
+  ↓
+RRF
+  ↓
+Rerank
+  ↓
+Top-K
+```
+
+第一阶段使用 Vector + BM25 获取候选集合。
+
+第二阶段使用 CrossEncoder 对候选文档进行精排。
+
+将计算成本较高的 Reranker 限制在较小候选集合内，在检索效果与计算成本之间进行平衡。
+
+## 3. Query Rewrite + Multi-turn Memory
+
+Redis 保存 Session History。
+
+Query Rewrite 使用历史消息解决：
+
+```text
+指代
+省略
+上下文依赖
+多轮追问
+```
+
+使：
+
+```text
+“还是不行”
+“它怎么修改”
+“这个多少钱”
+```
+
+等短 Query 能够结合上下文转换为更适合 Retrieval 的完整 Query。
+
+## 4. BGE CrossEncoder Rerank
+
+使用：
+
+```text
+BAAI/bge-reranker-v2-m3
+```
+
+对 RRF Top-20 候选进行 Query-Document Pair 相关性建模，再选出 Top-5 进入 Context Compression 和 Generation。
+
+## 5. Automated Evaluation
+
+建立固定 Evaluation Dataset，并分别从 Retrieval 和 Generation 两个层面评估 RAG Pipeline：
+
+```text
+Retrieval Evaluation
+   │
+   ├── Recall@K
+   ├── Precision@K
+   ├── Hit@K
+   ├── MRR@K
+   └── NDCG@K
+
+Generation Evaluation
+   │
+   ├── Faithfulness
+   ├── Answer Relevancy
+   └── Citation Accuracy
+```
+
+通过固定 Dataset、Evaluation Pipeline 和 Judge Prompt，实现 RAG Pipeline 的版本回归测试。
+
+## 6. Evaluation Failure Isolation
+
+Generation Evaluation 采用单样本隔离机制：
+
+```text
+Sample 1 ──→ Success
+Sample 2 ──→ Success
+Sample 3 ──→ Judge Error ──→ Record Error
+Sample 4 ──→ Success
+...
+```
+
+单条样本发生：
+
+- LLM Timeout
+- JSON Parse Error
+- Judge Error
+- Generation Error
+
+不会导致整个 Evaluation 任务中断。
+
+同时通过 Cache 减少重复调用 LLM。
 
 ------
-
