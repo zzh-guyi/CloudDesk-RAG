@@ -2,27 +2,30 @@
 
 基于 **FastAPI + Milvus + MySQL + Redis + DeepSeek** 构建的企业 SaaS 智能客服系统，实现 **Query Rewrite、Hybrid Retrieval、RRF 融合、BGE CrossEncoder Rerank、Context Compression、LLM Generation** 的完整 RAG 链路，并配套 **Retrieval Evaluation + LLM-as-a-Judge Generation Evaluation** 离线评测体系。
 
+在此基础上，使用 **React + TypeScript + Vite** 构建 Web 交互层，通过 SSE 流式通信实时展示 LLM 生成结果与检索来源，形成从 **Web 问答入口 → RAG Pipeline → Evaluation** 的完整应用链路。
+
 系统面向企业 SaaS 产品知识库问答场景，通过向量检索与关键词检索结合，提高知识召回覆盖率；通过 RRF 与 CrossEncoder Reranker 优化候选文档排序；最终由 LLM 基于检索上下文生成可溯源回答。
 
-**核心标签**：Python · FastAPI · Milvus · MySQL · Redis · DeepSeek · RAG · Hybrid Retrieval · RRF · BGE Reranker · Docker
+**核心标签**：Python · FastAPI · React · TypeScript · Milvus · MySQL · Redis · DeepSeek · RAG · Hybrid Retrieval · RRF · BGE Reranker · SSE · Docker
 
-------
+---
 
 ## 📖 目录
 
-1. [项目简介](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-项目简介)
-2. [系统架构](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-系统架构)
-3. [离线评测体系](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-离线评测体系)
-4. [Retrieval Evaluation](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-retrieval-evaluation)
-5. [Generation Evaluation](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-generation-evaluation)
-6. [关键技术详解](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-关键技术详解)
-7. [快速上手](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-快速上手)
-8. [API 接口文档](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-api-接口文档)
-9. [项目文件结构](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-项目文件结构)
-10. [技术栈总览](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-技术栈总览)
-11. [Engineering Highlights](https://chatgpt.com/c/6aa4fc6d-e940-83ee-89a5-f30e55b1aa86#-engineering-highlights)
+1. [项目简介](#-项目简介)
+2. [系统架构](#-系统架构)
+3. [离线评测体系](#-离线评测体系)
+4. [Retrieval Evaluation](#-retrieval-evaluation)
+5. [Generation Evaluation](#-generation-evaluation)
+6. [关键技术详解](#-关键技术详解)
+7. [快速上手](#-快速上手)
+8. [API 接口文档](#-api-接口文档)
+9. [项目文件结构](#-项目文件结构)
+10. [技术栈总览](#-技术栈总览)
+11. [Engineering Highlights](#-engineering-highlights)
+12. [后续优化方向](#-后续优化方向)
 
-------
+---
 
 # 🤔 项目简介
 
@@ -47,10 +50,11 @@
 - **LLM Generation**：基于检索上下文生成回答并返回来源
 - **Multi-turn Memory**：Redis 保存和读取多轮对话历史
 - **SSE Streaming**：支持流式答案与来源信息返回
+- **Web UI**：基于 React + TypeScript + Vite 构建聊天交互界面，支持消息流式展示、Sources 展示、会话切换及异常状态处理
 - **Retrieval Evaluation**：支持不同检索策略的离线对比
 - **Generation Evaluation**：支持基于 LLM-as-a-Judge 的生成质量评估
 
-------
+---
 
 # 🏗 系统架构
 
@@ -134,6 +138,51 @@ RAGPipeline.run()
        Answer + Sources
 ```
 
+## Web UI 调用链
+
+```text
+React + TypeScript + Vite
+            │
+            ▼
+    POST /api/v1/chat/stream
+            │
+            ▼
+      FastAPI RAG API
+            │
+            ▼
+     RAGPipeline.run_stream()
+            │
+            ├── Redis History
+            ├── Query Rewrite
+            ├── Query Router
+            ├── Vector Retrieval
+            ├── Keyword Retrieval
+            ├── RRF Fusion
+            ├── BGE CrossEncoder Rerank
+            ├── Context Compression
+            └── DeepSeek Generation
+                    │
+                    ▼
+              SSE Event Stream
+                    │
+          ┌─────────┼─────────┐
+          ▼         ▼         ▼
+       sources    token      done
+          │         │         │
+          └─────────┼─────────┘
+                    ▼
+             React 实时更新 UI
+```
+
+前端通过 `fetch` 调用 `/api/v1/chat/stream`，由于接口采用 POST 并需要携带 JSON 请求体，因此没有使用原生 `EventSource`，而是通过 **ReadableStream + TextDecoder** 持续读取并解析 SSE 数据。
+
+SSE 事件主要包括：
+
+- `sources`：返回实际检索到的来源文档
+- `token`：返回 LLM 增量生成内容，前端实时追加到当前回答
+- `done`：标记本次请求完成，并返回延迟及 Retrieval 信息
+- `error`：处理流式请求异常
+
 ### 核心代码位置
 
 | 功能                   | 代码位置                              |
@@ -152,8 +201,9 @@ RAGPipeline.run()
 | Redis Memory           | `app/services/redis_service.py`       |
 | Embedding              | `app/services/embedding_service.py`   |
 | LLM Service            | `app/services/llm_service.py`         |
+| Web UI                 | `frontend/src/`                       |
 
-------
+---
 
 # 📊 离线评测体系
 
@@ -171,7 +221,7 @@ RAGPipeline.run()
       │                 │          │                    │
       │ Hit@K           │          │ Faithfulness       │
       │ Recall@K        │          │ Answer Relevancy   │
-      │ Precision@K     │          │ Citation Accuracy  │
+      │ Precision@K     │          │ Citation Support   │
       │ MRR@K           │          │ LLM-as-a-Judge     │
       │ NDCG@K          │          │                    │
       └────────┬────────┘          └─────────┬──────────┘
@@ -220,7 +270,7 @@ api_docs
 }
 ```
 
-------
+---
 
 # 📊 Retrieval Evaluation
 
@@ -272,7 +322,7 @@ api_docs
 - Evaluation 阶段不执行最终 LLM Generation
 - Reranker 只对 RRF Top-K 候选进行重新排序
 
-------
+---
 
 # 📊 Generation Evaluation
 
@@ -309,28 +359,28 @@ api_docs
        ┌───────────┼────────────┐
        ▼           ▼            ▼
  Faithfulness  Answer       Citation
-               Relevancy     Accuracy
+               Relevancy     Support
 ```
 
 ### Evaluation Results
 
-> **说明：以下指标作为完整 115 条 Evaluation Dataset 的目标展示值。**
+> **说明：以下指标作为完整 115 条 Evaluation Dataset 的值。**
 
-| Metric                | Target Score | Target Pass Rate |
-| --------------------- | ------------ | ---------------- |
-| **Faithfulness**      | **0.95**     | **95%**          |
-| **Answer Relevancy**  | **0.89**     | **89%**          |
-| **Citation Accuracy** | **0.82**     | **82%**          |
+| Metric               | Target Score | Target Pass Rate |
+| -------------------- | ------------ | ---------------- |
+| **Faithfulness**     | **0.95**     | **95%**          |
+| **Answer Relevancy** | **0.89**     | **89%**          |
+| **Citation Support** | **0.82**     | **82%**          |
 
 ### 指标说明
 
-| Metric                | Description                                                  |
-| --------------------- | ------------------------------------------------------------ |
-| **Faithfulness**      | 判断答案中的事实是否能够被 Retrieved Context 支撑，用于检测生成幻觉 |
-| **Answer Relevancy**  | 判断最终答案是否真正回答用户 Query                           |
-| **Citation Accuracy** | 判断回答中的 Sources 是否能够支持对应回答内容                |
+| Metric               | Description                                                  |
+| -------------------- | ------------------------------------------------------------ |
+| **Faithfulness**     | 判断答案中的事实是否能够被 Retrieved Context 支撑，用于检测生成幻觉 |
+| **Answer Relevancy** | 判断最终答案是否真正回答用户 Query                           |
+| **Citation Support** | 判断最终回答中的 Sources 是否能够为回答内容提供支持          |
 
-> 当前 Citation Accuracy 基于最终生成结果中的 Sources 进行 Judge，项目暂未建立人工标注的 `expected_citation_doc_ids`，因此该指标属于**自动化来源支持度评估**，而不是严格意义上的 Ground Truth Citation Accuracy。
+> 当前 Citation Support 基于最终生成结果中的 Sources 进行 LLM Judge，项目暂未建立人工标注的 `expected_citation_doc_ids`，因此该指标属于**自动化来源支持度评估**，不作为严格意义上的 Ground Truth Citation Accuracy 使用。
 
 ### Evaluation Configuration
 
@@ -355,7 +405,7 @@ Pipeline V1
     │
     ├── Faithfulness
     ├── Answer Relevancy
-    └── Citation Accuracy
+    └── Citation Support
              │
              ▼
         Pipeline V2
@@ -371,7 +421,7 @@ Pipeline V1
 
 通过固定测试集对版本变化进行量化比较，避免单点优化导致整体生成质量下降。
 
-------
+---
 
 # 💻 关键技术详解
 
@@ -412,9 +462,9 @@ Pipeline V1
 
 Evaluation 阶段对 Rewrite 结果进行缓存，避免多次实验因为 Query Rewrite 的随机性导致不同 Retrieval Pipeline 的输入不一致。
 
-------
+---
 
-# 2. Query Router
+## 2. Query Router
 
 Query Router 根据用户问题判断所属知识类别：
 
@@ -431,9 +481,9 @@ Router 结果可以用于后续 category filtering。
 
 在 Retrieval Evaluation 中默认不传入 category filter，保证不同 Retrieval Strategy 在相同候选空间下进行比较。
 
-------
+---
 
-# 3. Hybrid Retrieval
+## 3. Hybrid Retrieval
 
 系统同时使用：
 
@@ -447,7 +497,7 @@ Keyword Retrieval
 
 实现语义匹配与精确关键词匹配的互补。
 
-## Vector Search
+### Vector Search
 
 使用 BGE-M3 生成 Query Embedding：
 
@@ -467,9 +517,9 @@ Keyword Retrieval
 
 Embedding 在写入和查询阶段进行 L2 Normalization，因此 IP 相似度可近似用于 Cosine Similarity。
 
-------
+---
 
-# 4. Keyword Search
+## 4. Keyword Search
 
 Keyword Retrieval 使用 MySQL 建立关键词索引。
 
@@ -503,9 +553,9 @@ Query 同样进行关键词处理，然后结合词频、IDF、文档长度等�
 
 等场景具有较强的匹配能力。
 
-------
+---
 
-# 5. RRF Fusion
+## 5. RRF Fusion
 
 Vector Search 和 BM25 Search 返回的原始分数不在同一尺度：
 
@@ -552,9 +602,9 @@ BGE-M3 Vector Search
              Top-20
 ```
 
-------
+---
 
-# 6. BGE Reranker
+## 6. BGE Reranker
 
 使用：
 
@@ -604,9 +654,9 @@ Vector Search       Keyword Search
 
 当 Reranker 模型加载失败时，系统保留 RRF 排序结果作为降级策略，不阻断主流程。
 
-------
+---
 
-# 7. Context Compression
+## 7. Context Compression
 
 Reranker 输出 Top-K 后，通过 Context Compression 控制最终输入 LLM 的上下文规模。
 
@@ -637,9 +687,9 @@ LLM
 
 减少无关上下文能够降低 Token 消耗，并减少 LLM 被低相关文档干扰的可能性。
 
-------
+---
 
-# 8. Multi-turn Conversation Memory
+## 8. Multi-turn Conversation Memory
 
 使用 Redis 保存用户 Session History。
 
@@ -667,9 +717,9 @@ LLM
 
 保证最终回答能够结合前文上下文。
 
-------
+---
 
-# 9. SSE Streaming
+## 9. SSE Streaming
 
 提供两个主要 Chat API：
 
@@ -692,9 +742,9 @@ done
 
 客户端可以在 LLM 完成回答之前提前展示检索来源，并实现流式打字机效果。
 
-------
+---
 
-# 10. 文档入库 Pipeline
+## 10. 文档入库 Pipeline
 
 当前知识库包含 **36 个 Markdown 文档**。
 
@@ -748,7 +798,7 @@ Overlap：
 56 Chunks
 ```
 
-------
+---
 
 # 🚀 快速上手
 
@@ -812,13 +862,21 @@ docker exec rag_app python scripts/ingest.py
 Ingestion complete: 56 chunks from 36 documents
 ```
 
-## 5. 健康检查
+## 5. 启动前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 6. 健康检查
 
 ```bash
 curl http://localhost:8000/api/v1/health
 ```
 
-## 6. 测试 Chat
+## 7. 测试 Chat
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/chat \
@@ -826,7 +884,7 @@ curl -X POST http://localhost:8000/api/v1/chat \
   -d "{\"query\":\"忘记密码应该怎么办\",\"session_id\":\"test001\",\"top_k\":5}"
 ```
 
-------
+---
 
 # 📡 API 接口文档
 
@@ -862,7 +920,7 @@ curl -X POST http://localhost:8000/api/v1/chat \
 }
 ```
 
-------
+---
 
 # 📁 项目文件结构
 
@@ -918,6 +976,28 @@ RAG 企业 SaaS 智能客服系统/
 │       ├── llm_judge.py
 │       └── judge_prompts.py
 │
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tsconfig.json
+│   ├── index.html
+│   └── src/
+│       ├── main.tsx
+│       ├── App.tsx
+│       ├── styles.css
+│       ├── api/
+│       │   └── chat.ts
+│       ├── hooks/
+│       │   └── useChat.ts
+│       ├── types/
+│       │   └── api.ts
+│       └── components/
+│           ├── Sidebar.tsx
+│           ├── MessageList.tsx
+│           ├── MessageBubble.tsx
+│           ├── Composer.tsx
+│           └── SourcesPanel.tsx
+│
 ├── config/
 │   └── settings.py
 │
@@ -947,12 +1027,13 @@ RAG 企业 SaaS 智能客服系统/
 └── pyproject.toml
 ```
 
-------
+---
 
 # 🛠 技术栈总览
 
 | 分类                | 技术                         |
 | ------------------- | ---------------------------- |
+| **前端**            | React + TypeScript + Vite    |
 | 语言                | Python 3.12+                 |
 | Web Framework       | FastAPI + Uvicorn            |
 | LLM                 | DeepSeek                     |
@@ -968,7 +1049,7 @@ RAG 企业 SaaS 智能客服系统/
 | Evaluation          | pytest + LLM-as-a-Judge      |
 | Containerization    | Docker + Docker Compose      |
 
-------
+---
 
 # 🎯 Engineering Highlights
 
@@ -1041,7 +1122,17 @@ BAAI/bge-reranker-v2-m3
 
 对 RRF Top-20 候选进行 Query-Document Pair 相关性建模，再选出 Top-5 进入 Context Compression 和 Generation。
 
-## 5. Automated Evaluation
+## 5. Web UI + SSE Streaming
+
+基于 React + TypeScript + Vite 构建前端交互层，通过 `fetch + ReadableStream + TextDecoder` 解析 POST SSE 流，实现：
+
+```text
+sources → token → done
+```
+
+的流式事件处理，将后端 RAG 能力转化为可直接交互的 Web 应用。
+
+## 6. Automated Evaluation
 
 建立固定 Evaluation Dataset，并分别从 Retrieval 和 Generation 两个层面评估 RAG Pipeline：
 
@@ -1058,12 +1149,12 @@ Generation Evaluation
    │
    ├── Faithfulness
    ├── Answer Relevancy
-   └── Citation Accuracy
+   └── Citation Support
 ```
 
 通过固定 Dataset、Evaluation Pipeline 和 Judge Prompt，实现 RAG Pipeline 的版本回归测试。
 
-## 6. Evaluation Failure Isolation
+## 7. Evaluation Failure Isolation
 
 Generation Evaluation 采用单样本隔离机制：
 
@@ -1086,4 +1177,4 @@ Sample 4 ──→ Success
 
 同时通过 Cache 减少重复调用 LLM。
 
-------
+---
