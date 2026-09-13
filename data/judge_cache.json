@@ -1,0 +1,236 @@
+{
+  "dataset_version": "v1",
+  "model": "deepseek-v4-flash",
+  "prompt_version": "v1",
+  "entries": {
+    "d1e24dc87767ffece1755e333eb58652aaa44133c0d1c03050e0537625decb77": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:citation_accuracy:4c3664efada49e644d60ff317a70bf5732869c47d2f28447ff67170889f8e202",
+      "result": {
+        "metric": "citation_accuracy",
+        "score": 0.0,
+        "reason": "answer 中未提供任何可在 sources 中验证的真实引用，其“引用来源”仅标注为“暂无”，而 sources 为空，因此 Citation Accuracy 为 0.0。",
+        "valid_citations": [],
+        "invalid_citations": [],
+        "status": "success",
+        "attempts": 2,
+        "cache_hit": false
+      }
+    },
+    "4447766ed32578aa9a6d6f696de52db188d82e177191c970b879e376221d9437": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:faithfulness:99dc1fc52c65367a469c47d94933f13b17a927e13468ae93c116231539839b58",
+      "result": {
+        "metric": "faithfulness",
+        "score": 0.0,
+        "reason": "context 为空，answer 包含 CloudDesk 系统管理员、产品内联系/提交工单渠道、CloudDesk 官方客服等事实性信息，均无 context 支持。根据规则，context 为空且 answer 含事实性断言时 score 应为 0.0。",
+        "unsupported_claims": [
+          "联系贵企业的 CloudDesk 系统管理员，由管理员协助解锁或重置密码",
+          "通过产品内的「联系我们 / 提交工单」渠道，联系 CloudDesk 官方客服获取进一步帮助"
+        ],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "164cd1ba35efd89a90c7fa3a5dbb8504eb94fb5550da6d03a75deddd5a278797": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:answer_relevancy:115c2d43bc5eb0c64ab8e1fadb53ecd59a6396aa016cf970258588f776284551",
+      "result": {
+        "metric": "answer_relevancy",
+        "score": 0.6,
+        "reason": "回答表示知识库无相关资料，未提供具体的解锁步骤或锁定规则，仅建议联系管理员或客服。虽提供了替代求助渠道，但未直接回答“怎么办”的核心诉求，遗漏关键解决信息。",
+        "missing_aspects": [
+          "具体的密码解锁步骤或自助解锁方法",
+          "密码锁定规则的说明（如锁定时间、尝试次数等）",
+          "重置密码的具体操作方式"
+        ],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "f8def70249e564cb4f4e55b60cdf03faa0f2023e47afb80e7e224f3e9fbeaf67": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:citation_accuracy:068645fc5555f02376da8d467f99eda2a84fe79036abd2e7eef13dbd338181b4",
+      "result": {
+        "metric": "citation_accuracy",
+        "score": 0.0,
+        "reason": "回答未提供任何引用，仅声明暂无来源；sources 为空，无可验证引用。",
+        "valid_citations": [],
+        "invalid_citations": [],
+        "status": "success",
+        "attempts": 2,
+        "cache_hit": false
+      }
+    },
+    "cd49460fe49d34cd8b606c1d3374797ee5d2d2f142bd982855e038684d2e9154": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:faithfulness:2a9575cb78b6698920217d1f63bcaa987ba26c33894658da8fafe4845cd32bef",
+      "result": {
+        "metric": "faithfulness",
+        "score": 0.0,
+        "reason": "context 为空，而 answer 包含事实性断言（CloudDesk 产品存在帮助中心、上传文件页面及人工客服/技术支持渠道），这些均无法由空 context 支持，按规则第 6 条应评为 0.0。",
+        "unsupported_claims": [
+          "CloudDesk 产品内有帮助中心或「上传文件」页面可供查看文件大小限制说明",
+          "CloudDesk 提供人工客服或技术支持渠道，可联系其获取针对性处理方案"
+        ],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "d7cc78439098ad30ef94e32192d084d9840b50429fccdfd91a24ea04b297bb64": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:answer_relevancy:2f2150232590ec0498c97775256004842419236212d8baa8d986e9d3cb2a0273",
+      "result": {
+        "metric": "answer_relevancy",
+        "score": 0.3,
+        "reason": "回答表示知识库中无相关处理说明，仅提供查看帮助中心和联系客服等通用建议，未给出任何针对“文件过大”的具体处理步骤，主要问题未被回答，属于弱相关。",
+        "missing_aspects": [
+          "具体的文件大小上限",
+          "压缩文件或图片的方法",
+          "分片上传或使用其他上传方式等处理方案"
+        ],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "2e390a75e8488d3b08d035c96dcb5336a144374e716fe71426145324307b4780": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:citation_accuracy:cc674217ee877d4b60293b03924f573afa594936c4ed028611b8d18d062b0d5a",
+      "result": {
+        "metric": "citation_accuracy",
+        "score": 0.0,
+        "reason": "answer 未提供任何实际引用标识或来源标题，且明确标注“引用来源：无”；sources 为空，无可验证引用，依据评分规则第5条，Citation Accuracy 为 0.0。",
+        "valid_citations": [],
+        "invalid_citations": [],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "e2c53740a828b2f844458129c29ab3f91583efed6e2aa1be7117e9dbb16f269c": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:faithfulness:8d198c31522a72fd0c02325d5f300364e12b052d8a6dd1bf645581408cdd7aa9",
+      "result": {
+        "metric": "faithfulness",
+        "score": 0.0,
+        "reason": "context 为空，answer 中除「知识库未收录该错误」这一对检索结果的描述外，仍包含事实性断言（如提及 CloudDesk 帮助中心、不同模块错误码体系可能不同等），按规则 context 为空且回答含事实性断言时评分应为 0.0。",
+        "unsupported_claims": [
+          "可在 CloudDesk 帮助中心搜索该错误码（context 为空，未提供任何关于 CloudDesk 的信息）",
+          "不同模块的错误码体系可能不同（context 为空，无任何依据）",
+          "E1001 可能出现在登录、API 调用、数据同步等环节（context 为空，属凭空推测的场景举例）"
+        ],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "3458f0d387cc9d95179e7610207f0900d6fa1daa6be332ef9f7f190f41cb00f9": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:answer_relevancy:983193aefe959bd432ccdcd5b8ec2c48db8a3b711e2fe67548b5ba8a1c496d42",
+      "result": {
+        "metric": "answer_relevancy",
+        "score": 0.3,
+        "reason": "回答未提供 E1001 错误的具体排查步骤或原因，仅说明知识库无资料并给出一般性求助建议，未直接回应“怎么排查”的核心要求。",
+        "missing_aspects": [
+          "E1001 错误的可能原因",
+          "E1001 错误的具体排查步骤",
+          "针对 E1001 的解决方案或修复方法"
+        ],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "ec31f333a53e9d0bda0f33357e03649809e98c38ba1dd5b362826db3469f3472": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:citation_accuracy:c0cb57bcd9b7d4904604af1be5ad7db908174ba26bc9524c8c862a8df8b19893",
+      "result": {
+        "metric": "citation_accuracy",
+        "score": 0.0,
+        "reason": "answer 明确标注“引用来源：暂无”，未提供任何可验证的实际引用；sources 也为空，因此不存在能由 sources 验证并支持陈述的引用。根据规则，没有引用时 Citation Accuracy 为 0.0。",
+        "valid_citations": [],
+        "invalid_citations": [],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "4b3003ba7a6e7ce78f7e46c0505ddfa97a49ea79943f1b4ddb3c11d567efdb2f": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:faithfulness:0c83e91b0aa67a42d9ca8dafea3c3369442843d3748d8a9c1db52c8aba51ced1",
+      "result": {
+        "metric": "faithfulness",
+        "score": 0.0,
+        "reason": "context 为空，answer 虽承认知识库无相关内容，但包含多条关于官网套餐页、控制台配额提示、客服渠道等外部事实性断言，均无 context 支持，按规则应评为 0.0。",
+        "unsupported_claims": [
+          "产品官网的「定价 / 套餐对比」页面通常会列出各版本的项目数、成员数等配额",
+          "若已在控制台内，可进入「项目列表」或「账户/套餐设置」页查看免费版配额提示",
+          "可以联系人工客服或客户成功经理，获取准确的套餐限额说明",
+          "如果能提供相关的产品文档或套餐说明，可以进一步确认免费版项目数量上限"
+        ],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "68f369a74cd385df760ac95617b78893e780c48fd816e829c224ca5f93c43314": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:answer_relevancy:7f186d124af233c3db91bd3cd69c9980d0ac8e31dd1f90145ddf197eafbe7313",
+      "result": {
+        "metric": "answer_relevancy",
+        "score": 0.3,
+        "reason": "回答虽然围绕「免费版项目数量上限」这一主题作出回应，但未给出任何具体数量，仅说明知识库无相关内容并给出查询建议，属于未回答问题的核心诉求。",
+        "missing_aspects": [
+          "免费版最多可创建的项目数量（具体数值或明确上限说明）"
+        ],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    },
+    "6d091fd749f08e7cb0f06b2fd5a331b9024d428cfd3809ea65c8a28d4ad0487a": {
+      "dataset_version": "v1",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "v1",
+      "judge_key": "llm_judge:citation_accuracy:1fef3194ef3890568df1415e74219451e3bebcdc7fb2320431b2cf83ec8c96c3",
+      "result": {
+        "metric": "citation_accuracy",
+        "score": 0.0,
+        "reason": "answer 未提供任何可验证来源引用，其“引用来源”标注为“无”，且 sources 为空，因此不存在能由 sources 验证并支持陈述的有效引用。根据规则，没有引用时 Citation Accuracy 为 0.0。",
+        "valid_citations": [],
+        "invalid_citations": [],
+        "status": "success",
+        "attempts": 1,
+        "cache_hit": false
+      }
+    }
+  }
+}
