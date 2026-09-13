@@ -58,7 +58,8 @@ class RAGPipeline:
         self,
         query: str,
         session_id: Optional[str] = None,
-        top_k: Optional[int] = None
+        top_k: Optional[int] = None,
+        include_evaluation_metadata: bool = False
     ) -> Dict[str, Any]:
         """
         运行完整 RAG Pipeline
@@ -67,9 +68,11 @@ class RAGPipeline:
             query: 用户查询
             session_id: 会话 ID
             top_k: 返回数量
+            include_evaluation_metadata: 是否在结果中附加 Evaluation metadata
 
         Returns:
-            包含 answer, sources, retrieval_info 的字典
+            包含 answer, sources, retrieval_info 的字典；
+            开启 include_evaluation_metadata 时额外包含 evaluation_metadata
         """
         start_time = time()
         top_k = top_k or settings.rag_top_k
@@ -168,6 +171,18 @@ class RAGPipeline:
                 "retrieval_info": retrieval_info,
                 "session_id": session_id,
             }
+
+            if include_evaluation_metadata is True:
+                result["evaluation_metadata"] = {
+                    "question": query,
+                    "rewritten_query": rewritten_query,
+                    "context": context,
+                    "answer": generation_result["answer"],
+                    "sources": [
+                        source.model_dump(mode="json")
+                        for source in sources
+                    ],
+                }
 
         metrics.save_to_redis()
 

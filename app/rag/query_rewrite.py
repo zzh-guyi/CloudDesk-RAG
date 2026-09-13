@@ -44,6 +44,9 @@ CATEGORY_PROMPT = """请对以下问题进行分类，从以下类别中选择�
 
 类别："""
 
+REWRITE_MAX_TOKENS = 2048
+ROUTER_MAX_TOKENS = 2048
+
 
 class QueryRewriter:
     """Query Rewrite 模块"""
@@ -78,7 +81,10 @@ class QueryRewriter:
                 {"role": "system", "content": "你是一个查询优化助手，擅长将用户问题转换为更适合检索的查询语句。"},
                 {"role": "user", "content": prompt}
             ]
-            rewritten = self.llm.generate(messages, max_tokens=200)
+            rewritten = self.llm.generate(
+                messages,
+                max_tokens=REWRITE_MAX_TOKENS,
+            )
             # 清理输出
             rewritten = rewritten.strip().replace('"', "").replace("'", "").strip()
             if not rewritten or rewritten == query:
@@ -111,7 +117,10 @@ class QueryRouter:
                 {"role": "system", "content": "你是一个查询分类助手，擅长将用户问题归类到最合适的类别。"},
                 {"role": "user", "content": CATEGORY_PROMPT.format(query=query)}
             ]
-            category = self.llm.generate(messages, max_tokens=50).strip().lower()
+            category = self.llm.generate(
+                messages,
+                max_tokens=ROUTER_MAX_TOKENS,
+            ).strip().lower()
             # 验证分类
             if category in self.categories:
                 return category
